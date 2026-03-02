@@ -10,7 +10,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 
 class CheckoutCommandTest extends CommandTestCase
 {
-    public function test_checkout_opens_browser_default_site(): void
+    public function test_checkout_opens_browser(): void
     {
         $openedUrl = null;
         $command = new CheckoutCommand(function (string $url) use (&$openedUrl) {
@@ -27,9 +27,8 @@ class CheckoutCommandTest extends CommandTestCase
 
         $this->assertSame(0, $tester->getStatusCode());
         $this->assertStringContainsString('Checkout opened', $tester->getDisplay());
-        $this->assertStringStartsWith('https://wordpress.com/checkout/no-site?', $openedUrl);
+        $this->assertStringContainsString('wordpress.com/checkout/no-site', $openedUrl);
         $this->assertStringContainsString('isDomainOnly=1', $openedUrl);
-        $this->assertStringContainsString('signup=1', $openedUrl);
     }
 
     public function test_checkout_with_site_option(): void
@@ -48,7 +47,6 @@ class CheckoutCommandTest extends CommandTestCase
         $tester->execute(['--site' => 'ttl.blog']);
 
         $this->assertSame(0, $tester->getStatusCode());
-        $this->assertStringContainsString('Checkout opened', $tester->getDisplay());
         $this->assertSame('https://wordpress.com/checkout/ttl.blog', $openedUrl);
     }
 

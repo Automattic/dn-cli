@@ -6,8 +6,6 @@ namespace DnCli\Tests\Command;
 
 use Automattic\Domain_Services_Client\Response\Domain\Register as RegisterResponse;
 use DnCli\Command\RegisterCommand;
-use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Tester\CommandTester;
 
 class RegisterCommandTest extends CommandTestCase
 {
@@ -123,24 +121,64 @@ class RegisterCommandTest extends CommandTestCase
             ->with('rest/v1.3/domains/newdomain.com/is-available')
             ->willReturn(['status' => 'available']);
 
-        $openedUrl = null;
-        $command = new RegisterCommand(null, null, $this->wpcomClient, function (string $url) use (&$openedUrl) {
-            $openedUrl = $url;
-        });
+        $this->wpcomClient->expects($this->once())
+            ->method('post')
+            ->with('rest/v1.1/me/shopping-cart/no-site', $this->callback(function (array $body) {
+                return $body['blog_id'] === 0
+                    && $body['products'][0]['product_slug'] === 'domain_reg'
+                    && $body['products'][0]['meta'] === 'newdomain.com'
+                    && $body['products'][0]['is_domain_registration'] === true
+                    && $body['products'][0]['extra']['isDomainOnlySitelessCheckout'] === true;
+            }))
+            ->willReturn(['cart_key' => 'no-site']);
 
-        putenv('DN_MODE=user');
-        putenv('DN_OAUTH_TOKEN=test-token');
-
-        $app = new Application();
-        $app->add($command);
-        $tester = new CommandTester($app->find('register'));
+        $tester = $this->createUserModeTester(new RegisterCommand());
         $tester->execute(['domain' => 'newdomain.com']);
 
         $output = $tester->getDisplay();
         $this->assertSame(0, $tester->getStatusCode());
-        $this->assertStringContainsString('Checkout opened for newdomain.com', $output);
-        $this->assertStringContainsString('domain_reg:newdomain.com', $openedUrl);
-        $this->assertStringContainsString('isDomainOnly=1', $openedUrl);
+        $this->assertStringContainsString('Added newdomain.com to cart', $output);
+        $this->assertStringContainsString('wordpress.com/checkout/no-site', $output);
+    }
+
+    public function test_user_mode_register_blog_domain(): void
+    {
+        $this->wpcomClient->method('get')
+            ->willReturn(['status' => 'available']);
+
+        $this->wpcomClient->expects($this->once())
+            ->method('post')
+            ->with('rest/v1.1/me/shopping-cart/no-site', $this->callback(function (array $body) {
+                return $body['products'][0]['product_slug'] === 'dotblog_domain';
+            }))
+            ->willReturn(['cart_key' => 'no-site']);
+
+        $tester = $this->createUserModeTester(new RegisterCommand());
+        $tester->execute(['domain' => 'example.blog']);
+
+        $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    public function test_user_mode_register_with_site(): void
+    {
+        $this->wpcomClient->method('get')
+            ->willReturn(['status' => 'available']);
+
+        $this->wpcomClient->expects($this->once())
+            ->method('post')
+            ->with('rest/v1.1/me/shopping-cart/ttl.blog', $this->callback(function (array $body) {
+                return !isset($body['blog_id'])
+                    && !isset($body['products'][0]['extra']['isDomainOnlySitelessCheckout']);
+            }))
+            ->willReturn(['cart_key' => '123']);
+
+        $tester = $this->createUserModeTester(new RegisterCommand());
+        $tester->execute(['domain' => 'newdomain.com', '--site' => 'ttl.blog']);
+
+        $output = $tester->getDisplay();
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertStringContainsString('wordpress.com/checkout/ttl.blog', $output);
+        $this->assertStringNotContainsString('isDomainOnly', $output);
     }
 
     public function test_user_mode_register_unavailable(): void
@@ -149,14 +187,7 @@ class RegisterCommandTest extends CommandTestCase
             ->method('get')
             ->willReturn(['status' => 'not_available']);
 
-        $command = new RegisterCommand(null, null, $this->wpcomClient, function () {});
-
-        putenv('DN_MODE=user');
-        putenv('DN_OAUTH_TOKEN=test-token');
-
-        $app = new Application();
-        $app->add($command);
-        $tester = new CommandTester($app->find('register'));
+        $tester = $this->createUserModeTester(new RegisterCommand());
         $tester->execute(['domain' => 'taken.com']);
 
         $this->assertSame(1, $tester->getStatusCode());
@@ -168,14 +199,7 @@ class RegisterCommandTest extends CommandTestCase
         $this->wpcomClient->method('get')
             ->willThrowException(new \RuntimeException('Network error'));
 
-        $command = new RegisterCommand(null, null, $this->wpcomClient, function () {});
-
-        putenv('DN_MODE=user');
-        putenv('DN_OAUTH_TOKEN=test-token');
-
-        $app = new Application();
-        $app->add($command);
-        $tester = new CommandTester($app->find('register'));
+        $tester = $this->createUserModeTester(new RegisterCommand());
         $tester->execute(['domain' => 'test.com']);
 
         $this->assertSame(1, $tester->getStatusCode());

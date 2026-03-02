@@ -12,8 +12,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class CheckoutCommand extends BaseCommand
 {
-    private const CHECKOUT_BASE_URL = 'https://wordpress.com/checkout/';
-
     /** @var callable(string): void */
     private $browserOpener;
 
@@ -41,17 +39,16 @@ class CheckoutCommand extends BaseCommand
         $site = $input->getOption('site');
 
         if ($site !== null) {
-            $url = self::CHECKOUT_BASE_URL . rawurlencode($site);
+            $url = 'https://wordpress.com/checkout/' . rawurlencode($site);
         } else {
-            $url = self::CHECKOUT_BASE_URL . 'no-site?' . http_build_query([
-                'signup' => '1',
+            $url = 'https://wordpress.com/checkout/no-site?' . http_build_query([
                 'isDomainOnly' => '1',
-                'checkoutBackUrl' => 'https://wordpress.com/start/domain/domain-only?skippedCheckout=1',
+                'signup' => '0',
             ]);
         }
 
         ($this->browserOpener)($url);
-        $io->text('Checkout opened in your browser.');
+        $io->text("Checkout opened: <info>{$url}</info>");
 
         return self::SUCCESS;
     }

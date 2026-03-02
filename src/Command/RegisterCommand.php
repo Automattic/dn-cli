@@ -10,10 +10,6 @@ use Automattic\Domain_Services_Client\Entity\Domain_Contact;
 use Automattic\Domain_Services_Client\Entity\Domain_Contacts;
 use Automattic\Domain_Services_Client\Entity\Domain_Name;
 use Automattic\Domain_Services_Client\Entity\Whois_Privacy;
-use Automattic\Domain_Services_Client\Api;
-use DnCli\Api\WPcomClient;
-use DnCli\Config\ConfigManager;
-use DnCli\Util\Browser;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -22,18 +18,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class RegisterCommand extends BaseCommand
 {
-    /** @var callable(string): void */
-    private $browserOpener;
-
-    public function __construct(
-        ?ConfigManager $configManager = null,
-        ?Api $api = null,
-        ?WPcomClient $wpcomClient = null,
-        ?callable $browserOpener = null,
-    ) {
-        $this->browserOpener = $browserOpener ?? [Browser::class, 'open'];
-        parent::__construct($configManager, $api, $wpcomClient);
-    }
     protected function configure(): void
     {
         $this
@@ -52,7 +36,8 @@ class RegisterCommand extends BaseCommand
             ->addOption('city', null, InputOption::VALUE_REQUIRED, 'City')
             ->addOption('state', null, InputOption::VALUE_REQUIRED, 'State/province')
             ->addOption('postal-code', null, InputOption::VALUE_REQUIRED, 'Postal code')
-            ->addOption('country', null, InputOption::VALUE_REQUIRED, 'Country code (e.g. US)');
+            ->addOption('country', null, InputOption::VALUE_REQUIRED, 'Country code (e.g. US)')
+            ->addOption('site', 's', InputOption::VALUE_REQUIRED, 'Site slug for checkout (user mode, e.g. mysite.wordpress.com)');
     }
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
@@ -147,6 +132,8 @@ class RegisterCommand extends BaseCommand
     private function handleUserMode(InputInterface $input, SymfonyStyle $io): int
     {
         $domainName = $input->getArgument('domain');
+        $site = $input->getOption('site') ?? 'no-site';
+        $isDomainOnly = $site === 'no-site';
 
         try {
             $client = $this->createWPcomClient();
@@ -159,20 +146,60 @@ class RegisterCommand extends BaseCommand
                 return self::FAILURE;
             }
 
-            // Open checkout directly with the domain in the URL
-            $url = 'https://wordpress.com/checkout/no-site/domain_reg:' . rawurlencode($domainName) . '?' . http_build_query([
-                'signup' => '1',
-                'isDomainOnly' => '1',
-                'checkoutBackUrl' => 'https://wordpress.com/start/domain/domain-only?skippedCheckout=1',
-            ]);
+            // Add to cart
+            $productSlug = $this->getDomainProductSlug($domainName);
+            $extra = [
+                'privacy' => true,
+                'privacy_available' => true,
+            ];
+            if ($isDomainOnly) {
+                $extra['isDomainOnlySitelessCheckout'] = true;
+            }
 
-            ($this->browserOpener)($url);
-            $io->success("Checkout opened for {$domainName}.");
+            $cartBody = [
+                'temporary' => false,
+                'products' => [
+                    [
+                        'product_slug' => $productSlug,
+                        'meta' => $domainName,
+                        'is_domain_registration' => true,
+                        'extra' => $extra,
+                    ],
+                ],
+            ];
+            if ($isDomainOnly) {
+                $cartBody['blog_id'] = 0;
+                $cartBody['cart_key'] = 'no-site';
+            }
+
+            $client->post("rest/v1.1/me/shopping-cart/{$site}", $cartBody);
+
+            $checkoutUrl = 'https://wordpress.com/checkout/' . rawurlencode($site);
+            if ($isDomainOnly) {
+                $checkoutUrl .= '?' . http_build_query([
+                    'isDomainOnly' => '1',
+                    'signup' => '0',
+                ]);
+            }
+
+            $io->success("Added {$domainName} to cart.");
+            $io->text("Complete your purchase: <info>{$checkoutUrl}</info>");
         } catch (\Exception $e) {
             $io->error('Error: ' . $this->sanitizeErrorMessage($e->getMessage()));
             return self::FAILURE;
         }
 
         return self::SUCCESS;
+    }
+
+    private function getDomainProductSlug(string $domain): string
+    {
+        $tld = strtolower(substr($domain, (int) strrpos($domain, '.') + 1));
+
+        if ($tld === 'com') {
+            return 'domain_reg';
+        }
+
+        return 'dot' . $tld . '_domain';
     }
 }
