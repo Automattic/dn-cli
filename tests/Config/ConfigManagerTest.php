@@ -15,6 +15,9 @@ class ConfigManagerTest extends TestCase
     private string $savedApiUrl = '';
     private string $savedHome = '';
 
+    private string $savedMode = '';
+    private string $savedOAuthToken = '';
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -26,11 +29,15 @@ class ConfigManagerTest extends TestCase
         $this->savedApiUser = getenv('DN_API_USER') ?: '';
         $this->savedApiUrl = getenv('DN_API_URL') ?: '';
         $this->savedHome = getenv('HOME') ?: '';
+        $this->savedMode = getenv('DN_MODE') ?: '';
+        $this->savedOAuthToken = getenv('DN_OAUTH_TOKEN') ?: '';
 
         // Clear env vars and point HOME to temp
         putenv('DN_API_KEY');
         putenv('DN_API_USER');
         putenv('DN_API_URL');
+        putenv('DN_MODE');
+        putenv('DN_OAUTH_TOKEN');
         putenv('HOME=' . $this->tempDir);
     }
 
@@ -41,6 +48,8 @@ class ConfigManagerTest extends TestCase
         $this->restoreEnv('DN_API_USER', $this->savedApiUser);
         $this->restoreEnv('DN_API_URL', $this->savedApiUrl);
         $this->restoreEnv('HOME', $this->savedHome);
+        $this->restoreEnv('DN_MODE', $this->savedMode);
+        $this->restoreEnv('DN_OAUTH_TOKEN', $this->savedOAuthToken);
 
         // Cleanup temp dir
         $this->removeDir($this->tempDir);
@@ -279,5 +288,111 @@ class ConfigManagerTest extends TestCase
         // Permissions must still be restrictive after overwrite
         $perms = fileperms($path) & 0777;
         $this->assertSame(0600, $perms);
+    }
+
+    public function test_default_mode_is_partner(): void
+    {
+        $config = new ConfigManager();
+        $this->assertSame('partner', $config->getMode());
+    }
+
+    public function test_mode_from_config_file(): void
+    {
+        $configDir = $this->tempDir . '/.config/dn';
+        mkdir($configDir, 0700, true);
+        file_put_contents($configDir . '/config.json', json_encode([
+            'mode' => 'user',
+            'oauth_token' => 'test-token',
+        ]));
+
+        $config = new ConfigManager();
+        $this->assertSame('user', $config->getMode());
+    }
+
+    public function test_mode_from_env_var_overrides_config(): void
+    {
+        $configDir = $this->tempDir . '/.config/dn';
+        mkdir($configDir, 0700, true);
+        file_put_contents($configDir . '/config.json', json_encode([
+            'mode' => 'partner',
+            'api_key' => 'key',
+            'api_user' => 'user',
+        ]));
+
+        putenv('DN_MODE=user');
+
+        $config = new ConfigManager();
+        $this->assertSame('user', $config->getMode());
+    }
+
+    public function test_oauth_token_from_config_file(): void
+    {
+        $configDir = $this->tempDir . '/.config/dn';
+        mkdir($configDir, 0700, true);
+        file_put_contents($configDir . '/config.json', json_encode([
+            'mode' => 'user',
+            'oauth_token' => 'file-token',
+        ]));
+
+        $config = new ConfigManager();
+        $this->assertSame('file-token', $config->getOAuthToken());
+    }
+
+    public function test_oauth_token_from_env_var(): void
+    {
+        putenv('DN_OAUTH_TOKEN=env-token');
+
+        $config = new ConfigManager();
+        $this->assertSame('env-token', $config->getOAuthToken());
+    }
+
+    public function test_is_configured_user_mode_with_token(): void
+    {
+        putenv('DN_MODE=user');
+        putenv('DN_OAUTH_TOKEN=my-token');
+
+        $config = new ConfigManager();
+        $this->assertTrue($config->isConfigured());
+    }
+
+    public function test_is_configured_user_mode_without_token(): void
+    {
+        putenv('DN_MODE=user');
+
+        $config = new ConfigManager();
+        $this->assertFalse($config->isConfigured());
+    }
+
+    public function test_save_user_mode_creates_config(): void
+    {
+        $config = new ConfigManager();
+        $config->saveUserMode('my-oauth-token');
+
+        $path = $this->tempDir . '/.config/dn/config.json';
+        $this->assertFileExists($path);
+
+        $data = json_decode(file_get_contents($path), true);
+        $this->assertSame('user', $data['mode']);
+        $this->assertSame('my-oauth-token', $data['oauth_token']);
+    }
+
+    public function test_save_user_mode_sets_permissions(): void
+    {
+        $config = new ConfigManager();
+        $config->saveUserMode('token');
+
+        $path = $this->tempDir . '/.config/dn/config.json';
+        $perms = fileperms($path) & 0777;
+        $this->assertSame(0600, $perms);
+    }
+
+    public function test_save_writes_partner_mode(): void
+    {
+        $config = new ConfigManager();
+        $config->save('key', 'user');
+
+        $path = $this->tempDir . '/.config/dn/config.json';
+        $data = json_decode(file_get_contents($path), true);
+        $this->assertSame('partner', $data['mode']);
     }
 }

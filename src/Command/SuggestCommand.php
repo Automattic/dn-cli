@@ -27,6 +27,15 @@ class SuggestCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->handleUserMode($input, $io);
+        }
+
+        return $this->handlePartnerMode($input, $io);
+    }
+
+    private function handlePartnerMode(InputInterface $input, SymfonyStyle $io): int
+    {
         $query = $input->getArgument('query');
         $count = (int) $input->getOption('count');
         $tldsOption = $input->getOption('tlds');
@@ -63,6 +72,40 @@ class SuggestCommand extends BaseCommand
 
             $io->table(
                 ['Domain', 'Available', 'Register Fee', 'Renewal Fee', 'Premium'],
+                $rows
+            );
+        } catch (\Exception $e) {
+            $io->error('Error: ' . $this->sanitizeErrorMessage($e->getMessage()));
+            return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    private function handleUserMode(InputInterface $input, SymfonyStyle $io): int
+    {
+        $query = $input->getArgument('query');
+        $count = (int) $input->getOption('count');
+
+        try {
+            $client = $this->createWPcomClient();
+            $result = $client->get('rest/v1.1/domains/suggestions', [
+                'query' => $query,
+                'quantity' => $count,
+            ]);
+
+            $rows = [];
+            foreach ($result as $suggestion) {
+                $rows[] = [
+                    $suggestion['domain_name'] ?? '-',
+                    $suggestion['cost'] ?? '-',
+                    !empty($suggestion['is_premium']) ? 'Yes' : 'No',
+                    $suggestion['relevance'] ?? '-',
+                ];
+            }
+
+            $io->table(
+                ['Domain', 'Cost', 'Premium', 'Relevance'],
                 $rows
             );
         } catch (\Exception $e) {

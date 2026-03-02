@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DnCli\Tests\Command;
 
 use Automattic\Domain_Services_Client\Api;
+use DnCli\Api\WPcomClient;
 use DnCli\Command\BaseCommand;
 use DnCli\Config\ConfigManager;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -15,20 +16,28 @@ use Symfony\Component\Console\Tester\CommandTester;
 abstract class CommandTestCase extends TestCase
 {
     protected Api&MockObject $api;
+    protected WPcomClient&MockObject $wpcomClient;
     private string $savedApiKey = '';
     private string $savedApiUser = '';
+    private string $savedMode = '';
+    private string $savedOAuthToken = '';
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->api = $this->createMock(Api::class);
+        $this->wpcomClient = $this->createMock(WPcomClient::class);
 
         // Save and clear env vars
         $this->savedApiKey = getenv('DN_API_KEY') ?: '';
         $this->savedApiUser = getenv('DN_API_USER') ?: '';
+        $this->savedMode = getenv('DN_MODE') ?: '';
+        $this->savedOAuthToken = getenv('DN_OAUTH_TOKEN') ?: '';
         putenv('DN_API_KEY');
         putenv('DN_API_USER');
         putenv('DN_API_URL');
+        putenv('DN_MODE');
+        putenv('DN_OAUTH_TOKEN');
     }
 
     /**
@@ -39,11 +48,30 @@ abstract class CommandTestCase extends TestCase
     {
         putenv('DN_API_KEY=test-key');
         putenv('DN_API_USER=test-user');
+        putenv('DN_MODE=partner');
 
         // Re-create the command with the mock API injected via constructor
         // (BaseCommand accepts ?Api as second constructor parameter).
         $commandClass = get_class($command);
         $command = new $commandClass(null, $this->api);
+
+        $app = new Application();
+        $app->add($command);
+
+        return new CommandTester($app->find($command->getName()));
+    }
+
+    /**
+     * Create a CommandTester for a command in user mode with a mocked WPcomClient.
+     * Sets env vars so user mode config check passes.
+     */
+    protected function createUserModeTester(BaseCommand $command): CommandTester
+    {
+        putenv('DN_MODE=user');
+        putenv('DN_OAUTH_TOKEN=test-token');
+
+        $commandClass = get_class($command);
+        $command = new $commandClass(null, null, $this->wpcomClient);
 
         $app = new Application();
         $app->add($command);
@@ -58,6 +86,7 @@ abstract class CommandTestCase extends TestCase
     {
         putenv('DN_API_KEY');
         putenv('DN_API_USER');
+        putenv('DN_MODE=partner');
 
         $app = new Application();
         $app->add($command);
@@ -105,6 +134,17 @@ abstract class CommandTestCase extends TestCase
             putenv('DN_API_USER');
         }
         putenv('DN_API_URL');
+
+        if ($this->savedMode !== '') {
+            putenv('DN_MODE=' . $this->savedMode);
+        } else {
+            putenv('DN_MODE');
+        }
+        if ($this->savedOAuthToken !== '') {
+            putenv('DN_OAUTH_TOKEN=' . $this->savedOAuthToken);
+        } else {
+            putenv('DN_OAUTH_TOKEN');
+        }
 
         parent::tearDown();
     }

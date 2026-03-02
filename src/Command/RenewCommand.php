@@ -27,6 +27,10 @@ class RenewCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Domain renewals');
+        }
+
         $domainName = $input->getArgument('domain');
         $period = (int) $input->getOption('period');
 

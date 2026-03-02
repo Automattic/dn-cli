@@ -24,6 +24,10 @@ class InfoCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Domain info');
+        }
+
         $domainName = $input->getArgument('domain');
 
         try {

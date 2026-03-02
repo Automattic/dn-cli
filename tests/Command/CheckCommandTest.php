@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace DnCli\Tests\Command;
 
 use Automattic\Domain_Services_Client\Response\Domain\Check as CheckResponse;
+use DnCli\Api\WPcomClient;
 use DnCli\Command\CheckCommand;
 
 class CheckCommandTest extends CommandTestCase
@@ -144,7 +145,7 @@ class CheckCommandTest extends CommandTestCase
         $tester->execute(['domains' => ['example.com']]);
 
         $this->assertSame(1, $tester->getStatusCode());
-        $this->assertStringContainsString('No API credentials found', $tester->getDisplay());
+        $this->assertStringContainsString('Not configured', $tester->getDisplay());
     }
 
     public function test_tld_in_maintenance(): void
@@ -169,5 +170,67 @@ class CheckCommandTest extends CommandTestCase
         $tester->execute(['domains' => ['example.xyz']]);
 
         $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    public function test_user_mode_check_available(): void
+    {
+        $this->wpcomClient->expects($this->once())
+            ->method('get')
+            ->with('rest/v1.3/domains/example.com/is-available')
+            ->willReturn([
+                'status' => 'available',
+                'cost' => '$12.00',
+                'supports_privacy' => true,
+            ]);
+
+        $tester = $this->createUserModeTester(new CheckCommand());
+        $tester->execute(['domains' => ['example.com']]);
+
+        $output = $tester->getDisplay();
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertStringContainsString('example.com', $output);
+        $this->assertStringContainsString('Yes', $output);
+        $this->assertStringContainsString('$12.00', $output);
+    }
+
+    public function test_user_mode_check_unavailable(): void
+    {
+        $this->wpcomClient->expects($this->once())
+            ->method('get')
+            ->willReturn([
+                'status' => 'not_available',
+                'supports_privacy' => false,
+            ]);
+
+        $tester = $this->createUserModeTester(new CheckCommand());
+        $tester->execute(['domains' => ['taken.com']]);
+
+        $output = $tester->getDisplay();
+        $this->assertStringContainsString('No', $output);
+    }
+
+    public function test_user_mode_check_api_error(): void
+    {
+        $this->wpcomClient->method('get')
+            ->willThrowException(new \RuntimeException('Unauthorized'));
+
+        $tester = $this->createUserModeTester(new CheckCommand());
+        $tester->execute(['domains' => ['example.com']]);
+
+        $this->assertSame(1, $tester->getStatusCode());
+        $this->assertStringContainsString('Unauthorized', $tester->getDisplay());
+    }
+
+    public function test_user_mode_redacts_oauth_token(): void
+    {
+        $this->wpcomClient->method('get')
+            ->willThrowException(new \RuntimeException('Bearer test-token was rejected'));
+
+        $tester = $this->createUserModeTester(new CheckCommand());
+        $tester->execute(['domains' => ['example.com']]);
+
+        $output = $tester->getDisplay();
+        $this->assertStringNotContainsString('test-token', $output);
+        $this->assertStringContainsString('***', $output);
     }
 }

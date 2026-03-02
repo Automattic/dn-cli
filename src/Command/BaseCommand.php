@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace DnCli\Command;
 
 use Automattic\Domain_Services_Client\Api;
+use DnCli\Api\WPcomClient;
 use DnCli\Config\ConfigManager;
 use DnCli\Factory\ApiClientFactory;
+use DnCli\Factory\WPcomClientFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -16,11 +18,13 @@ abstract class BaseCommand extends Command
 {
     protected ConfigManager $configManager;
     private ?Api $api;
+    private ?WPcomClient $wpcomClient;
 
-    public function __construct(?ConfigManager $configManager = null, ?Api $api = null)
+    public function __construct(?ConfigManager $configManager = null, ?Api $api = null, ?WPcomClient $wpcomClient = null)
     {
         $this->configManager = $configManager ?? new ConfigManager();
         $this->api = $api;
+        $this->wpcomClient = $wpcomClient;
         parent::__construct();
     }
 
@@ -34,7 +38,7 @@ abstract class BaseCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         if ($this->requiresConfig() && !$this->configManager->isConfigured()) {
-            $io->warning('No API credentials found. Run `dn configure` first, or set DN_API_KEY and DN_API_USER environment variables.');
+            $io->warning('Not configured. Run `dn configure` first.');
             return Command::FAILURE;
         }
 
@@ -52,6 +56,28 @@ abstract class BaseCommand extends Command
         return ApiClientFactory::create($this->configManager);
     }
 
+    protected function createWPcomClient(): WPcomClient
+    {
+        if ($this->wpcomClient !== null) {
+            return $this->wpcomClient;
+        }
+
+        return WPcomClientFactory::create($this->configManager);
+    }
+
+    protected function isUserMode(): bool
+    {
+        return $this->configManager->getMode() === 'user';
+    }
+
+    protected function redirectToWordPressCom(SymfonyStyle $io, string $feature): int
+    {
+        $io->text("{$feature} in user mode is managed through WordPress.com.");
+        $io->text('Visit: https://wordpress.com/domains/manage');
+
+        return self::SUCCESS;
+    }
+
     /**
      * Redact known credential values from error messages to prevent
      * accidental leakage via exception output (e.g. Guzzle including
@@ -61,12 +87,16 @@ abstract class BaseCommand extends Command
     {
         $apiKey = $this->configManager->getApiKey();
         $apiUser = $this->configManager->getApiUser();
+        $oauthToken = $this->configManager->getOAuthToken();
 
         if ($apiKey !== null) {
             $message = str_replace($apiKey, '***', $message);
         }
         if ($apiUser !== null) {
             $message = str_replace($apiUser, '***', $message);
+        }
+        if ($oauthToken !== null) {
+            $message = str_replace($oauthToken, '***', $message);
         }
 
         return $message;

@@ -25,6 +25,15 @@ class CheckCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->handleUserMode($input, $io);
+        }
+
+        return $this->handlePartnerMode($input, $io);
+    }
+
+    private function handlePartnerMode(InputInterface $input, SymfonyStyle $io): int
+    {
         $domainArgs = $input->getArgument('domains');
         $domainNames = new Domain_Names();
 
@@ -59,6 +68,40 @@ class CheckCommand extends BaseCommand
 
             $io->table(
                 ['Domain', 'Available', 'Fee Class', 'Price', 'Zone Active', 'TLD Maintenance'],
+                $rows
+            );
+        } catch (\Exception $e) {
+            $io->error('Error: ' . $this->sanitizeErrorMessage($e->getMessage()));
+            return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    private function handleUserMode(InputInterface $input, SymfonyStyle $io): int
+    {
+        $domainArgs = $input->getArgument('domains');
+
+        try {
+            $client = $this->createWPcomClient();
+            $rows = [];
+
+            foreach ($domainArgs as $domain) {
+                $result = $client->get("rest/v1.3/domains/{$domain}/is-available");
+
+                $available = ($result['status'] ?? '') === 'available';
+
+                $rows[] = [
+                    $domain,
+                    $available ? '<fg=green>Yes</>' : '<fg=red>No</>',
+                    $result['status'] ?? '-',
+                    $result['cost'] ?? '-',
+                    !empty($result['supports_privacy']) ? 'Yes' : 'No',
+                ];
+            }
+
+            $io->table(
+                ['Domain', 'Available', 'Status', 'Cost', 'Privacy'],
                 $rows
             );
         } catch (\Exception $e) {

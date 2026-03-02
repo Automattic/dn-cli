@@ -107,4 +107,18 @@ class DnsSetCommandTest extends CommandTestCase
 
         $this->assertSame(1, $tester->getStatusCode());
     }
+
+    public function test_user_mode_redirects_to_wpcom(): void
+    {
+        $tester = $this->createUserModeTester(new DnsSetCommand());
+        $tester->execute([
+            'domain' => 'example.com',
+            '--type' => 'A',
+            '--name' => '@',
+            '--value' => ['1.2.3.4'],
+        ]);
+
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertStringContainsString('wordpress.com/domains', $tester->getDisplay());
+    }
 }

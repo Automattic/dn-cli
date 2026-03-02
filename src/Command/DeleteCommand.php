@@ -23,6 +23,10 @@ class DeleteCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Domain deletion');
+        }
+
         $domainName = $input->getArgument('domain');
 
         $io->caution("You are about to delete the domain: {$domainName}");

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace DnCli;
 
+use DnCli\Command\CartCommand;
 use DnCli\Command\CheckCommand;
+use DnCli\Command\CheckoutCommand;
 use DnCli\Command\ConfigureCommand;
 use DnCli\Command\ContactsSetCommand;
 use DnCli\Command\DeleteCommand;
@@ -40,5 +42,7 @@ class Application extends ConsoleApplication
         $this->add(new ContactsSetCommand());
         $this->add(new PrivacySetCommand());
         $this->add(new TransferlockCommand());
+        $this->add(new CartCommand());
+        $this->add(new CheckoutCommand());
     }
 }

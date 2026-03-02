@@ -10,6 +10,10 @@ use Automattic\Domain_Services_Client\Entity\Domain_Contact;
 use Automattic\Domain_Services_Client\Entity\Domain_Contacts;
 use Automattic\Domain_Services_Client\Entity\Domain_Name;
 use Automattic\Domain_Services_Client\Entity\Whois_Privacy;
+use Automattic\Domain_Services_Client\Api;
+use DnCli\Api\WPcomClient;
+use DnCli\Config\ConfigManager;
+use DnCli\Util\Browser;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -18,6 +22,18 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class RegisterCommand extends BaseCommand
 {
+    /** @var callable(string): void */
+    private $browserOpener;
+
+    public function __construct(
+        ?ConfigManager $configManager = null,
+        ?Api $api = null,
+        ?WPcomClient $wpcomClient = null,
+        ?callable $browserOpener = null,
+    ) {
+        $this->browserOpener = $browserOpener ?? [Browser::class, 'open'];
+        parent::__construct($configManager, $api, $wpcomClient);
+    }
     protected function configure(): void
     {
         $this
@@ -40,6 +56,15 @@ class RegisterCommand extends BaseCommand
     }
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
+    {
+        if ($this->isUserMode()) {
+            return $this->handleUserMode($input, $io);
+        }
+
+        return $this->handlePartnerMode($input, $output, $io);
+    }
+
+    private function handlePartnerMode(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
         $domainName = $input->getArgument('domain');
         $period = (int) $input->getOption('period');
@@ -111,6 +136,38 @@ class RegisterCommand extends BaseCommand
                 $io->error('Registration failed: ' . $response->get_status_description());
                 return self::FAILURE;
             }
+        } catch (\Exception $e) {
+            $io->error('Error: ' . $this->sanitizeErrorMessage($e->getMessage()));
+            return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    private function handleUserMode(InputInterface $input, SymfonyStyle $io): int
+    {
+        $domainName = $input->getArgument('domain');
+
+        try {
+            $client = $this->createWPcomClient();
+
+            // Check availability
+            $check = $client->get("rest/v1.3/domains/{$domainName}/is-available");
+
+            if (($check['status'] ?? '') !== 'available') {
+                $io->error("{$domainName} is not available for registration.");
+                return self::FAILURE;
+            }
+
+            // Open checkout directly with the domain in the URL
+            $url = 'https://wordpress.com/checkout/no-site/domain_reg:' . rawurlencode($domainName) . '?' . http_build_query([
+                'signup' => '1',
+                'isDomainOnly' => '1',
+                'checkoutBackUrl' => 'https://wordpress.com/start/domain/domain-only?skippedCheckout=1',
+            ]);
+
+            ($this->browserOpener)($url);
+            $io->success("Checkout opened for {$domainName}.");
         } catch (\Exception $e) {
             $io->error('Error: ' . $this->sanitizeErrorMessage($e->getMessage()));
             return self::FAILURE;

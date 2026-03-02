@@ -24,6 +24,10 @@ class TransferlockCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Transfer lock settings');
+        }
+
         $domainName = $input->getArgument('domain');
         $state = strtolower($input->getArgument('state'));
 

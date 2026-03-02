@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace DnCli\Command;
 
+use DnCli\Auth\OAuthFlow;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\StreamableInputInterface;
@@ -12,6 +13,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 class ConfigureCommand extends BaseCommand
 {
+    private ?OAuthFlow $oauthFlow;
+
+    public function __construct(?OAuthFlow $oauthFlow = null)
+    {
+        $this->oauthFlow = $oauthFlow;
+        parent::__construct();
+    }
+
     protected function requiresConfig(): bool
     {
         return false;
@@ -21,12 +30,31 @@ class ConfigureCommand extends BaseCommand
     {
         $this
             ->setName('configure')
-            ->setDescription('Set up API credentials for the Domain Services API')
-            ->addOption('stdin', null, InputOption::VALUE_NONE, 'Read API key and user from stdin (one per line)')
-            ->addOption('api-url', null, InputOption::VALUE_OPTIONAL, 'API base URL (optional override)');
+            ->setDescription('Set up credentials for dn CLI')
+            ->addOption('mode', null, InputOption::VALUE_OPTIONAL, 'Authentication mode: partner or user')
+            ->addOption('stdin', null, InputOption::VALUE_NONE, 'Read credentials from stdin')
+            ->addOption('api-url', null, InputOption::VALUE_OPTIONAL, 'API base URL (optional override, partner mode only)');
     }
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
+    {
+        $mode = $input->getOption('mode');
+
+        if ($mode === null && !$input->getOption('stdin')) {
+            $mode = $io->choice('Select mode', ['partner', 'user'], 'partner');
+        }
+
+        // Default to partner for backward compatibility (stdin without --mode)
+        $mode = $mode ?? 'partner';
+
+        if ($mode === 'user') {
+            return $this->handleUserMode($input, $io);
+        }
+
+        return $this->handlePartnerMode($input, $io);
+    }
+
+    private function handlePartnerMode(InputInterface $input, SymfonyStyle $io): int
     {
         $apiUrl = $input->getOption('api-url');
 
@@ -52,6 +80,30 @@ class ConfigureCommand extends BaseCommand
         }
 
         $this->configManager->save($apiKey, $apiUser, $apiUrl);
+
+        $io->success('Configuration saved.');
+
+        return self::SUCCESS;
+    }
+
+    private function handleUserMode(InputInterface $input, SymfonyStyle $io): int
+    {
+        if ($input->getOption('stdin')) {
+            $stream = $this->getInputStream($input);
+            $token = trim((string) fgets($stream));
+        } else {
+            $io->text('Authenticating with WordPress.com...');
+
+            $flow = $this->oauthFlow ?? new OAuthFlow();
+            $token = $flow->authenticate();
+        }
+
+        if ($token === '') {
+            $io->error('OAuth token is required.');
+            return self::FAILURE;
+        }
+
+        $this->configManager->saveUserMode($token);
 
         $io->success('Configuration saved.');
 

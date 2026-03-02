@@ -6,6 +6,8 @@ namespace DnCli\Tests\Command;
 
 use Automattic\Domain_Services_Client\Response\Domain\Register as RegisterResponse;
 use DnCli\Command\RegisterCommand;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Tester\CommandTester;
 
 class RegisterCommandTest extends CommandTestCase
 {
@@ -112,5 +114,71 @@ class RegisterCommandTest extends CommandTestCase
         $tester->execute(['domain' => 'test.com'], ['interactive' => false]);
 
         $this->assertSame(1, $tester->getStatusCode());
+    }
+
+    public function test_user_mode_register_available(): void
+    {
+        $this->wpcomClient->expects($this->once())
+            ->method('get')
+            ->with('rest/v1.3/domains/newdomain.com/is-available')
+            ->willReturn(['status' => 'available']);
+
+        $openedUrl = null;
+        $command = new RegisterCommand(null, null, $this->wpcomClient, function (string $url) use (&$openedUrl) {
+            $openedUrl = $url;
+        });
+
+        putenv('DN_MODE=user');
+        putenv('DN_OAUTH_TOKEN=test-token');
+
+        $app = new Application();
+        $app->add($command);
+        $tester = new CommandTester($app->find('register'));
+        $tester->execute(['domain' => 'newdomain.com']);
+
+        $output = $tester->getDisplay();
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertStringContainsString('Checkout opened for newdomain.com', $output);
+        $this->assertStringContainsString('domain_reg:newdomain.com', $openedUrl);
+        $this->assertStringContainsString('isDomainOnly=1', $openedUrl);
+    }
+
+    public function test_user_mode_register_unavailable(): void
+    {
+        $this->wpcomClient->expects($this->once())
+            ->method('get')
+            ->willReturn(['status' => 'not_available']);
+
+        $command = new RegisterCommand(null, null, $this->wpcomClient, function () {});
+
+        putenv('DN_MODE=user');
+        putenv('DN_OAUTH_TOKEN=test-token');
+
+        $app = new Application();
+        $app->add($command);
+        $tester = new CommandTester($app->find('register'));
+        $tester->execute(['domain' => 'taken.com']);
+
+        $this->assertSame(1, $tester->getStatusCode());
+        $this->assertStringContainsString('not available', $tester->getDisplay());
+    }
+
+    public function test_user_mode_register_api_error(): void
+    {
+        $this->wpcomClient->method('get')
+            ->willThrowException(new \RuntimeException('Network error'));
+
+        $command = new RegisterCommand(null, null, $this->wpcomClient, function () {});
+
+        putenv('DN_MODE=user');
+        putenv('DN_OAUTH_TOKEN=test-token');
+
+        $app = new Application();
+        $app->add($command);
+        $tester = new CommandTester($app->find('register'));
+        $tester->execute(['domain' => 'test.com']);
+
+        $this->assertSame(1, $tester->getStatusCode());
+        $this->assertStringContainsString('Network error', $tester->getDisplay());
     }
 }

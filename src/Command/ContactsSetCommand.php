@@ -39,6 +39,10 @@ class ContactsSetCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Contact management');
+        }
+
         $domainName = $input->getArgument('domain');
         $contactType = $input->getOption('type');
 

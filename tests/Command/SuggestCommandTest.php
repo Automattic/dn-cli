@@ -106,6 +106,41 @@ class SuggestCommandTest extends CommandTestCase
         $tester->execute(['query' => 'test']);
 
         $this->assertSame(1, $tester->getStatusCode());
-        $this->assertStringContainsString('No API credentials found', $tester->getDisplay());
+        $this->assertStringContainsString('Not configured', $tester->getDisplay());
+    }
+
+    public function test_user_mode_suggestions(): void
+    {
+        $this->wpcomClient->expects($this->once())
+            ->method('get')
+            ->with('rest/v1.1/domains/suggestions', [
+                'query' => 'coffee',
+                'quantity' => 10,
+            ])
+            ->willReturn([
+                ['domain_name' => 'coffee.com', 'cost' => '$12.00', 'is_premium' => false, 'relevance' => 1.0],
+                ['domain_name' => 'coffee.net', 'cost' => '$9.00', 'is_premium' => false, 'relevance' => 0.9],
+            ]);
+
+        $tester = $this->createUserModeTester(new SuggestCommand());
+        $tester->execute(['query' => 'coffee']);
+
+        $output = $tester->getDisplay();
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertStringContainsString('coffee.com', $output);
+        $this->assertStringContainsString('coffee.net', $output);
+        $this->assertStringContainsString('$12.00', $output);
+    }
+
+    public function test_user_mode_api_error(): void
+    {
+        $this->wpcomClient->method('get')
+            ->willThrowException(new \RuntimeException('Service unavailable'));
+
+        $tester = $this->createUserModeTester(new SuggestCommand());
+        $tester->execute(['query' => 'test']);
+
+        $this->assertSame(1, $tester->getStatusCode());
+        $this->assertStringContainsString('Service unavailable', $tester->getDisplay());
     }
 }

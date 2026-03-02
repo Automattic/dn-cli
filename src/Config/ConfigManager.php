@@ -26,8 +26,22 @@ class ConfigManager
         return $this->getEnv('DN_API_URL') ?? $this->get('api_url');
     }
 
+    public function getMode(): string
+    {
+        return $this->getEnv('DN_MODE') ?? $this->get('mode') ?? 'partner';
+    }
+
+    public function getOAuthToken(): ?string
+    {
+        return $this->getEnv('DN_OAUTH_TOKEN') ?? $this->get('oauth_token');
+    }
+
     public function isConfigured(): bool
     {
+        if ($this->getMode() === 'user') {
+            return $this->getOAuthToken() !== null;
+        }
+
         return $this->getApiKey() !== null && $this->getApiUser() !== null;
     }
 
@@ -39,6 +53,7 @@ class ConfigManager
         }
 
         $data = [
+            'mode' => 'partner',
             'api_key' => $apiKey,
             'api_user' => $apiUser,
         ];
@@ -47,6 +62,24 @@ class ConfigManager
             $data['api_url'] = $apiUrl;
         }
 
+        $this->writeConfig($data);
+    }
+
+    public function saveUserMode(string $oauthToken): void
+    {
+        $dir = $this->getConfigDir();
+        if (!is_dir($dir)) {
+            mkdir($dir, 0700, true);
+        }
+
+        $this->writeConfig([
+            'mode' => 'user',
+            'oauth_token' => $oauthToken,
+        ]);
+    }
+
+    private function writeConfig(array $data): void
+    {
         $path = $this->getConfigPath();
 
         // Set restrictive permissions before writing to avoid TOCTOU race

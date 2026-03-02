@@ -38,6 +38,10 @@ class TransferCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Domain transfers');
+        }
+
         $domainName = $input->getArgument('domain');
 
         $authCode = $input->getOption('auth-code') ?? $io->askHidden('EPP Authorization Code');

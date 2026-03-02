@@ -25,6 +25,10 @@ class PrivacySetCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Privacy settings');
+        }
+
         $domainName = $input->getArgument('domain');
         $setting = strtolower($input->getArgument('setting'));
 

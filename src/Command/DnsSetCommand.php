@@ -32,6 +32,10 @@ class DnsSetCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'DNS management');
+        }
+
         $domainName = $input->getArgument('domain');
         $type = $input->getOption('type') ?? $io->ask('Record type (A, AAAA, CNAME, MX, TXT, etc.)');
         $name = $input->getOption('name') ?? $io->ask('Record name (e.g. @ or subdomain)');

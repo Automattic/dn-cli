@@ -51,6 +51,8 @@ class ApplicationTest extends TestCase
             'contacts:set' => ['contacts:set'],
             'privacy' => ['privacy'],
             'transferlock' => ['transferlock'],
+            'cart' => ['cart'],
+            'checkout' => ['checkout'],
         ];
     }
 
@@ -63,6 +65,6 @@ class ApplicationTest extends TestCase
             return !in_array($cmd->getName(), ['help', 'list', 'completion', '_complete']);
         });
 
-        $this->assertCount(14, $custom);
+        $this->assertCount(16, $custom);
     }
 }

@@ -23,6 +23,10 @@ class RestoreCommand extends BaseCommand
 
     protected function handle(InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ($this->isUserMode()) {
+            return $this->redirectToWordPressCom($io, 'Domain restoration');
+        }
+
         $domainName = $input->getArgument('domain');
 
         try {
