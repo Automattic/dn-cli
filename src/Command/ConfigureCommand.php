@@ -59,7 +59,12 @@ class ConfigureCommand extends BaseCommand
     private function showSplashScreen(SymfonyStyle $io): void
     {
         $io->writeln('');
-        $io->writeln('<fg=cyan;options=bold>  dn — Domain Name CLI</>');
+        $io->writeln('<fg=cyan>   _  _   _ _____</><fg=blue> ___ </><fg=cyan> __  __   _ _____ _____ ___ ___</>');
+        $io->writeln('<fg=cyan>  /_\| | | |_   _</><fg=blue>/ _ </><fg=cyan>\|  \/  | /_\_   _|_   _|_ _/ __|</>');
+        $io->writeln('<fg=cyan> / _ \ |_| | | |</><fg=blue>| (/) |</><fg=cyan> |\/| |/ _ \| |   | |  | | (__</>');
+        $io->writeln('<fg=cyan>/_/ \_\___/  |_| </><fg=blue> \___/</><fg=cyan>|_|  |_/_/ \_\_|   |_| |___\___|</>');
+        $io->writeln('');
+        $io->writeln('  <fg=white;options=bold>dn-cli</> by Automattic · Domain Name CLI');
         $io->writeln('<fg=gray>  Manage domains from your terminal.</>');
         $io->writeln('');
         $io->writeln('  Choose an authentication mode to get started.');
