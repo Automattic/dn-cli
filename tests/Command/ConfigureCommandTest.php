@@ -126,6 +126,74 @@ class ConfigureCommandTest extends TestCase
         $this->assertSame('interactive-user', $data['api_user']);
     }
 
+    public function test_interactive_shows_splash_screen_and_command_overview(): void
+    {
+        $tester = $this->createTester();
+        $tester->setInputs(['partner', 'key', 'user', '']);
+        $tester->execute([]);
+
+        $output = $tester->getDisplay();
+
+        // Splash screen elements
+        $this->assertStringContainsString('dn-cli by Automattic', $output);
+        $this->assertStringContainsString('Domain Name CLI', $output);
+        $this->assertStringContainsString('Partner Mode', $output);
+        $this->assertStringContainsString('User Mode', $output);
+        $this->assertStringContainsString('Direct API access', $output);
+        $this->assertStringContainsString('WordPress.com OAuth', $output);
+
+        // Command overview for partner mode
+        $this->assertStringContainsString('Available Commands', $output);
+        $this->assertStringContainsString('dn check', $output);
+        $this->assertStringContainsString('dn register', $output);
+        $this->assertStringContainsString('dn dns:get', $output);
+    }
+
+    public function test_stdin_skips_splash_screen(): void
+    {
+        $tester = $this->createTester();
+        $tester->setInputs(['key', 'user']);
+        $tester->execute(['--stdin' => true]);
+
+        $output = $tester->getDisplay();
+        $this->assertStringNotContainsString('Domain Name CLI', $output);
+        $this->assertStringNotContainsString('Available Commands', $output);
+    }
+
+    public function test_mode_flag_skips_splash_screen(): void
+    {
+        $tester = $this->createTester();
+        $tester->setInputs(['key', 'user']);
+        $tester->execute(['--mode' => 'partner', '--stdin' => true]);
+
+        $output = $tester->getDisplay();
+        $this->assertStringNotContainsString('Domain Name CLI', $output);
+        $this->assertStringNotContainsString('Available Commands', $output);
+    }
+
+    public function test_user_mode_interactive_shows_user_commands(): void
+    {
+        $oauthFlow = $this->createMock(\DnCli\Auth\OAuthFlow::class);
+        $oauthFlow->method('authenticate')->willReturn('mock-token');
+
+        $command = new ConfigureCommand($oauthFlow);
+        $app = new Application();
+        $app->add($command);
+        $tester = new CommandTester($app->find('configure'));
+
+        $tester->setInputs(['user']);
+        $tester->execute([]);
+
+        // Splash screen should be shown since no --mode and no --stdin
+        $output = $tester->getDisplay();
+        $this->assertStringContainsString('Domain Name CLI', $output);
+
+        // User mode command overview
+        $this->assertStringContainsString('dn cart', $output);
+        $this->assertStringContainsString('dn checkout', $output);
+        $this->assertStringContainsString('wordpress.com/domains/manage', $output);
+    }
+
     public function test_does_not_require_prior_config(): void
     {
         $tester = $this->createTester();

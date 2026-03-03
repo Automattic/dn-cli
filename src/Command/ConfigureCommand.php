@@ -41,7 +41,9 @@ class ConfigureCommand extends BaseCommand
         $mode = $input->getOption('mode');
 
         if ($mode === null && !$input->getOption('stdin')) {
-            $mode = $io->choice('Select mode', ['partner', 'user'], 'partner');
+            $this->showSplashScreen($io);
+            $mode = $this->askMode($io);
+            $this->showCommandOverview($io, $mode);
         }
 
         // Default to partner for backward compatibility (stdin without --mode)
@@ -52,6 +54,87 @@ class ConfigureCommand extends BaseCommand
         }
 
         return $this->handlePartnerMode($input, $io);
+    }
+
+    private function showSplashScreen(SymfonyStyle $io): void
+    {
+        $io->writeln('');
+        $io->writeln('  <fg=white;options=bold>dn-cli</> by Automattic');
+        $io->writeln('<fg=gray>  Domain Name CLI — Manage domains from your terminal.</>');
+        $io->writeln('');
+        $io->writeln('  Choose an authentication mode to get started.');
+        $io->writeln('');
+        $io->writeln('  <fg=yellow;options=bold>[P] Partner Mode</>');
+        $io->writeln('      Direct API access via Automattic Domain Services.');
+        $io->writeln('      <fg=gray>Requires:</>  API Key + API User credentials');
+        $io->writeln('      <fg=gray>Best for:</>  Registrars, resellers, and API integrations');
+        $io->writeln('');
+        $io->writeln('  <fg=yellow;options=bold>[U] User Mode</>');
+        $io->writeln('      WordPress.com OAuth authentication.');
+        $io->writeln('      <fg=gray>Requires:</>  WordPress.com account');
+        $io->writeln('      <fg=gray>Best for:</>  Personal domain management and purchases');
+        $io->writeln('');
+    }
+
+    private function askMode(SymfonyStyle $io): string
+    {
+        return $io->choice(
+            'Select mode (type <fg=yellow>P</> or <fg=yellow>U</>, or use arrow keys)',
+            ['partner', 'user'],
+            'partner'
+        );
+    }
+
+    private function showCommandOverview(SymfonyStyle $io, string $mode): void
+    {
+        $io->writeln('');
+
+        if ($mode === 'partner') {
+            $io->writeln('<fg=cyan;options=bold>  Partner Mode — Available Commands</>');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>SETUP</>');
+            $io->writeln('    dn configure                  Set up API credentials');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>DISCOVERY</>');
+            $io->writeln('    dn check <domain>...          Check availability and pricing');
+            $io->writeln('    dn suggest <query>            Get domain name suggestions');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>REGISTRATION</>');
+            $io->writeln('    dn register <domain>          Register a new domain');
+            $io->writeln('    dn renew <domain>             Renew a domain');
+            $io->writeln('    dn delete <domain>            Delete a domain');
+            $io->writeln('    dn restore <domain>           Restore a deleted domain');
+            $io->writeln('    dn transfer <domain>          Transfer a domain in');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>MANAGEMENT</>');
+            $io->writeln('    dn info <domain>              Get detailed domain info');
+            $io->writeln('    dn dns:get <domain>           Get DNS records');
+            $io->writeln('    dn dns:set <domain>           Set a DNS record');
+            $io->writeln('    dn contacts:set <domain>      Update contact information');
+            $io->writeln('    dn privacy <domain> <on|off>  Set WHOIS privacy');
+            $io->writeln('    dn transferlock <domain> <on|off>');
+            $io->writeln('                                  Set transfer lock');
+        } else {
+            $io->writeln('<fg=cyan;options=bold>  User Mode — Available Commands</>');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>SETUP</>');
+            $io->writeln('    dn configure                  Set up WordPress.com OAuth');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>DISCOVERY</>');
+            $io->writeln('    dn check <domain>...          Check availability and pricing');
+            $io->writeln('    dn suggest <query>            Get domain name suggestions');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>PURCHASE</>');
+            $io->writeln('    dn register <domain>          Add a domain to your cart');
+            $io->writeln('    dn cart                       View your shopping cart');
+            $io->writeln('    dn checkout                   Open browser checkout');
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>MANAGEMENT</>');
+            $io->writeln('    Managed via WordPress.com — visit:');
+            $io->writeln('    https://wordpress.com/domains/manage');
+        }
+
+        $io->writeln('');
     }
 
     private function handlePartnerMode(InputInterface $input, SymfonyStyle $io): int
