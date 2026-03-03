@@ -13,7 +13,7 @@ vendor/bin/phpunit --filter=CheckCommand  # Run specific test class
 
 ```
 src/
-  Application.php              # Symfony Console app, registers all 16 commands
+  Application.php              # Symfony Console app, registers all 17 commands
   Api/WPcomClient.php          # Thin Guzzle wrapper for WordPress.com REST API
   Auth/OAuthFlow.php           # Browser OAuth flow with localhost callback
   Command/
@@ -24,7 +24,7 @@ src/
     RegisterCommand.php        # dn register <domain> (dual-mode: direct register or add to cart)
     CartCommand.php            # dn cart (user mode only — view shopping cart)
     CheckoutCommand.php        # dn checkout (user mode only — open browser checkout)
-    ... (16 commands total)
+    ... (17 commands total)
   Config/ConfigManager.php     # Credential + mode resolution: env vars → config file
   Factory/
     ApiClientFactory.php       # Wires Api client from ConfigManager (partner mode)

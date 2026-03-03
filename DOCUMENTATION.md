@@ -19,7 +19,7 @@ bin/dn  →  Application  →  Command  →  ApiClientFactory  →  Api  →  DS
 ```
 
 - **Entry point** (`bin/dn`): Finds Composer autoloader (local or global install), creates and runs the Application.
-- **Application**: Registers all 16 commands.
+- **Application**: Registers all 17 commands.
 - **BaseCommand**: Abstract base providing auth guard, dual-mode API creation, mode dispatch (`isUserMode()`), and error message sanitization.
 - **ConfigManager**: Resolves credentials and mode from environment variables (`DN_API_KEY`, `DN_API_USER`, `DN_MODE`, `DN_OAUTH_TOKEN`) or `~/.config/dn/config.json`. Env vars take priority.
 - **ApiClientFactory**: Static factory for the Domain Services `Api` client. Enforces HTTPS on custom URLs.
@@ -27,11 +27,12 @@ bin/dn  →  Application  →  Command  →  ApiClientFactory  →  Api  →  DS
 - **WPcomClient**: Thin Guzzle wrapper for WordPress.com REST API with Bearer token auth.
 - **OAuthFlow**: Browser-based OAuth implicit grant flow with localhost callback server (port 19851, client ID 134319).
 
-## Commands (16)
+## Commands (17)
 
 | Command | Class | Modes | Description |
 |---|---|---|---|
-| `configure` | ConfigureCommand | both | Set up credentials + mode (`--mode partner\|user`, `--stdin`, OAuth flow) |
+| `configure` | ConfigureCommand | both | Set up credentials + mode (`--mode partner\|user`, `--stdin`, OAuth flow). Splash screen with Automattic ASCII logo |
+| `reset` | ResetCommand | both | Clear stored configuration and credentials |
 | `check` | CheckCommand | both | Check domain availability and pricing |
 | `suggest` | SuggestCommand | both | Get domain name suggestions |
 | `register` | RegisterCommand | both | Register a domain (partner: direct, user: add to cart + print checkout link). `--site` for site-bound cart |
@@ -52,7 +53,7 @@ Partner-only commands redirect to wordpress.com/domains in user mode.
 
 ## Test Suite
 
-- **169 tests, 337 assertions** — all passing, zero deprecations
+- **181 tests, 373 assertions** — all passing, zero deprecations
 - **Fully mocked** — no API credentials needed to run tests
 - **Coverage**: every command (success, API error, exception, unconfigured state, user-mode paths), ConfigManager (env vars, file I/O, permissions, caching, mode + OAuth), ApiClientFactory, WPcomClientFactory, Application (command registration)
 - **Security tests**: credential redaction (API key, user, OAuth token), TOCTOU permission fix, HTTP URL rejection, config path non-disclosure
@@ -74,7 +75,7 @@ Partner-only commands redirect to wordpress.com/domains in user mode.
 
 ## Current Status
 
-- All 16 commands implemented and tested (169 tests passing)
+- All 17 commands implemented and tested (181 tests passing)
 - Dual-mode architecture: partner mode (Domain Services API) and user mode (WordPress.com OAuth)
 - OAuth flow working with client ID 134319, fixed port 19851
 - Cart POST body matches Calypso expectations (correct product slugs, domain-only flags)
