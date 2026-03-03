@@ -1,7 +1,7 @@
 {
     "name": "p3ob7o/dn-cli",
     "description": "CLI tool for Automattic Domain Services API",
-    "type": "project",
+    "type": "library",
     "license": "GPL-2.0-or-later",
     "require": {
         "php": ">=8.0",
