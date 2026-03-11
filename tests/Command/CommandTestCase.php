@@ -21,6 +21,7 @@ abstract class CommandTestCase extends TestCase
     private string $savedApiUser = '';
     private string $savedMode = '';
     private string $savedOAuthToken = '';
+    private string $savedAutoCheckout = '';
 
     protected function setUp(): void
     {
@@ -33,11 +34,13 @@ abstract class CommandTestCase extends TestCase
         $this->savedApiUser = getenv('DN_API_USER') ?: '';
         $this->savedMode = getenv('DN_MODE') ?: '';
         $this->savedOAuthToken = getenv('DN_OAUTH_TOKEN') ?: '';
+        $this->savedAutoCheckout = getenv('DN_AUTO_CHECKOUT') ?: '';
         putenv('DN_API_KEY');
         putenv('DN_API_USER');
         putenv('DN_API_URL');
         putenv('DN_MODE');
         putenv('DN_OAUTH_TOKEN');
+        putenv('DN_AUTO_CHECKOUT');
     }
 
     /**
@@ -144,6 +147,11 @@ abstract class CommandTestCase extends TestCase
             putenv('DN_OAUTH_TOKEN=' . $this->savedOAuthToken);
         } else {
             putenv('DN_OAUTH_TOKEN');
+        }
+        if ($this->savedAutoCheckout !== '') {
+            putenv('DN_AUTO_CHECKOUT=' . $this->savedAutoCheckout);
+        } else {
+            putenv('DN_AUTO_CHECKOUT');
         }
 
         parent::tearDown();

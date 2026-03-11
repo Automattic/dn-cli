@@ -17,6 +17,7 @@ class ConfigManagerTest extends TestCase
 
     private string $savedMode = '';
     private string $savedOAuthToken = '';
+    private string $savedAutoCheckout = '';
 
     protected function setUp(): void
     {
@@ -31,6 +32,7 @@ class ConfigManagerTest extends TestCase
         $this->savedHome = getenv('HOME') ?: '';
         $this->savedMode = getenv('DN_MODE') ?: '';
         $this->savedOAuthToken = getenv('DN_OAUTH_TOKEN') ?: '';
+        $this->savedAutoCheckout = getenv('DN_AUTO_CHECKOUT') ?: '';
 
         // Clear env vars and point HOME to temp
         putenv('DN_API_KEY');
@@ -38,6 +40,7 @@ class ConfigManagerTest extends TestCase
         putenv('DN_API_URL');
         putenv('DN_MODE');
         putenv('DN_OAUTH_TOKEN');
+        putenv('DN_AUTO_CHECKOUT');
         putenv('HOME=' . $this->tempDir);
     }
 
@@ -50,6 +53,7 @@ class ConfigManagerTest extends TestCase
         $this->restoreEnv('HOME', $this->savedHome);
         $this->restoreEnv('DN_MODE', $this->savedMode);
         $this->restoreEnv('DN_OAUTH_TOKEN', $this->savedOAuthToken);
+        $this->restoreEnv('DN_AUTO_CHECKOUT', $this->savedAutoCheckout);
 
         // Cleanup temp dir
         $this->removeDir($this->tempDir);
@@ -425,5 +429,83 @@ class ConfigManagerTest extends TestCase
     {
         $config = new ConfigManager();
         $this->assertTrue($config->delete());
+    }
+
+    public function test_auto_checkout_default_is_null(): void
+    {
+        $config = new ConfigManager();
+        $this->assertNull($config->getAutoCheckout());
+    }
+
+    public function test_auto_checkout_from_config_file(): void
+    {
+        $configDir = $this->tempDir . '/.config/dn';
+        mkdir($configDir, 0700, true);
+        file_put_contents($configDir . '/config.json', json_encode([
+            'mode' => 'user',
+            'oauth_token' => 'token',
+            'auto_checkout' => 'card',
+        ]));
+
+        $config = new ConfigManager();
+        $this->assertSame('card', $config->getAutoCheckout());
+    }
+
+    public function test_auto_checkout_env_overrides_config(): void
+    {
+        $configDir = $this->tempDir . '/.config/dn';
+        mkdir($configDir, 0700, true);
+        file_put_contents($configDir . '/config.json', json_encode([
+            'mode' => 'user',
+            'oauth_token' => 'token',
+            'auto_checkout' => 'card',
+        ]));
+
+        putenv('DN_AUTO_CHECKOUT=credits');
+
+        $config = new ConfigManager();
+        $this->assertSame('credits', $config->getAutoCheckout());
+    }
+
+    public function test_auto_checkout_invalid_value_returns_null(): void
+    {
+        putenv('DN_AUTO_CHECKOUT=invalid');
+
+        $config = new ConfigManager();
+        $this->assertNull($config->getAutoCheckout());
+    }
+
+    public function test_auto_checkout_both_value(): void
+    {
+        putenv('DN_AUTO_CHECKOUT=both');
+
+        $config = new ConfigManager();
+        $this->assertSame('both', $config->getAutoCheckout());
+    }
+
+    public function test_save_user_mode_with_auto_checkout(): void
+    {
+        $config = new ConfigManager();
+        $config->saveUserMode('my-token', 'both');
+
+        $path = $this->tempDir . '/.config/dn/config.json';
+        $data = json_decode(file_get_contents($path), true);
+
+        $this->assertSame('user', $data['mode']);
+        $this->assertSame('my-token', $data['oauth_token']);
+        $this->assertSame('both', $data['auto_checkout']);
+    }
+
+    public function test_save_user_mode_without_auto_checkout_is_backwards_compatible(): void
+    {
+        $config = new ConfigManager();
+        $config->saveUserMode('my-token');
+
+        $path = $this->tempDir . '/.config/dn/config.json';
+        $data = json_decode(file_get_contents($path), true);
+
+        $this->assertSame('user', $data['mode']);
+        $this->assertSame('my-token', $data['oauth_token']);
+        $this->assertArrayNotHasKey('auto_checkout', $data);
     }
 }

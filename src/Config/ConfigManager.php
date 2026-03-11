@@ -36,6 +36,13 @@ class ConfigManager
         return $this->getEnv('DN_OAUTH_TOKEN') ?? $this->get('oauth_token');
     }
 
+    public function getAutoCheckout(): ?string
+    {
+        $value = $this->getEnv('DN_AUTO_CHECKOUT') ?? $this->get('auto_checkout');
+
+        return in_array($value, ['credits', 'card', 'both'], true) ? $value : null;
+    }
+
     public function isConfigured(): bool
     {
         if ($this->getMode() === 'user') {
@@ -65,17 +72,23 @@ class ConfigManager
         $this->writeConfig($data);
     }
 
-    public function saveUserMode(string $oauthToken): void
+    public function saveUserMode(string $oauthToken, ?string $autoCheckout = null): void
     {
         $dir = $this->getConfigDir();
         if (!is_dir($dir)) {
             mkdir($dir, 0700, true);
         }
 
-        $this->writeConfig([
+        $data = [
             'mode' => 'user',
             'oauth_token' => $oauthToken,
-        ]);
+        ];
+
+        if ($autoCheckout !== null) {
+            $data['auto_checkout'] = $autoCheckout;
+        }
+
+        $this->writeConfig($data);
     }
 
     public function delete(): bool
