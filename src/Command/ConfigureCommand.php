@@ -188,11 +188,43 @@ class ConfigureCommand extends BaseCommand
             return self::FAILURE;
         }
 
-        $this->configManager->saveUserMode($token);
+        $autoCheckout = null;
+        if (!$input->getOption('stdin')) {
+            $autoCheckout = $this->askAutoCheckoutPreference($io);
+        }
+
+        $this->configManager->saveUserMode($token, $autoCheckout);
 
         $io->success('Configuration saved.');
 
         return self::SUCCESS;
+    }
+
+    private function askAutoCheckoutPreference(SymfonyStyle $io): ?string
+    {
+        $io->writeln('');
+        $io->writeln('<fg=cyan;options=bold>  Auto-Checkout Preference</>');
+        $io->writeln('');
+        $io->writeln('  When registering domains, auto-checkout can complete the');
+        $io->writeln('  purchase from the terminal without opening a browser.');
+        $io->writeln('');
+
+        $options = [
+            'N' => 'None — always open checkout in browser',
+            'C' => 'Credits — auto-checkout when credits cover the full amount',
+            'S' => 'Stored card — auto-checkout using a saved payment method',
+            'B' => 'Both — try credits first, then stored card',
+        ];
+
+        $key = $io->choice('Auto-checkout preference', $options, 'N');
+        $selected = $options[$key] ?? $key;
+
+        return match (true) {
+            str_starts_with($selected, 'Credits') => 'credits',
+            str_starts_with($selected, 'Stored') => 'card',
+            str_starts_with($selected, 'Both') => 'both',
+            default => null,
+        };
     }
 
     /**
