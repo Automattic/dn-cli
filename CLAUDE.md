@@ -29,14 +29,17 @@ src/
   Factory/
     ApiClientFactory.php       # Wires Api client from ConfigManager (partner mode)
     WPcomClientFactory.php     # Wires WPcomClient from ConfigManager (user mode)
+  Service/
+    CheckoutService.php        # WPCOM payment methods, domain contacts, transaction submission
   Util/Browser.php             # Cross-platform browser-open helper
 tests/
   Api/WPcomClientTest.php
   Command/CommandTestCase.php  # Shared test base: mock API + WPcomClient, env var management
   Command/*Test.php            # One test file per command
-  Config/ConfigManagerTest.php # Config file I/O, env var priority, mode + OAuth
+  Config/ConfigManagerTest.php # Config file I/O, env var priority, mode + OAuth + auto-checkout
   Factory/ApiClientFactoryTest.php
   Factory/WPcomClientFactoryTest.php
+  Service/CheckoutServiceTest.php
 ```
 
 ## Namespace
@@ -69,10 +72,19 @@ Every command extends `BaseCommand` and implements `handle()`. The base class:
 - Date format in fixtures must be `'Y-m-d H:i:s'` (not ISO 8601)
 
 ### Config & Credentials
-- Resolution order: `DN_API_KEY`/`DN_API_USER`/`DN_MODE`/`DN_OAUTH_TOKEN` env vars → `~/.config/dn/config.json`
+- Resolution order: `DN_API_KEY`/`DN_API_USER`/`DN_MODE`/`DN_OAUTH_TOKEN`/`DN_AUTO_CHECKOUT` env vars → `~/.config/dn/config.json`
 - Config file created with `0600` permissions (chmod before write to avoid TOCTOU race)
 - `ConfigureCommand` uses `askHidden()` for interactive input, `--stdin` for piped input, `--mode` to select mode
 - No CLI flags for credentials (prevents `ps aux` / shell history exposure)
+
+### Auto-Checkout (User Mode)
+`RegisterCommand` supports opt-in headless checkout via `CheckoutService`:
+- Flags: `--auto-checkout` (both), `--auto-pay-credits`, `--auto-pay-card`, `--yes` (skip confirm)
+- Config: `auto_checkout` in config.json, `DN_AUTO_CHECKOUT` env var (values: `credits`, `card`, `both`)
+- Flow: add to cart → fetch `/me/domain-contact-information` → validate required fields → submit `POST /me/transactions`
+- Always falls back to checkout URL on any failure (missing contacts, no payment methods, transaction error)
+- `stored_details_id` must never appear in output — only card type and last 4 digits shown
+- `ConfigureCommand` prompts for auto-checkout preference after OAuth (interactive mode only)
 
 ### Security Patterns
 - All catch blocks use `sanitizeErrorMessage()` to redact credentials (API key, user, OAuth token)
@@ -87,7 +99,8 @@ Every command extends `BaseCommand` and implements `handle()`. The base class:
 - Dual-mode commands also test user mode paths
 - Management commands test user-mode redirect behavior
 - Use PHPUnit 11 attributes (`#[DataProvider(...)]`), not doc-comment annotations
-- Env vars are saved/restored in setUp/tearDown to avoid test pollution (`DN_MODE`, `DN_OAUTH_TOKEN` included)
+- Env vars are saved/restored in setUp/tearDown to avoid test pollution (`DN_MODE`, `DN_OAUTH_TOKEN`, `DN_AUTO_CHECKOUT` included)
+- Tests that don't use auto-checkout should set `putenv('DN_AUTO_CHECKOUT=off')` to prevent config file leakage
 - `ConfigManagerTest` uses real temp directories (no mocking for file I/O)
 
 ## Dependencies
