@@ -249,6 +249,17 @@ dn transferlock example.com off
 | `dn privacy <domain> <on\|off\|redact>` | partner | WHOIS privacy settings |
 | `dn transferlock <domain> <on\|off>` | partner | Transfer lock control |
 
+## Claude Code plugin
+
+If you use [Claude Code](https://claude.com/claude-code), you can install the `domain-names` plugin for guided domain management skills:
+
+```
+/plugin marketplace add Automattic/dn-cli
+/plugin install domain-names
+```
+
+Run `/domain-names:setup` to verify the CLI is installed and configured. Then use skills like `/domain-names:dn-check`, `/domain-names:dn-register`, etc.
+
 ## Shell completion
 
 ```bash

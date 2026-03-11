@@ -1,0 +1,8 @@
+{
+  "name": "domain-names",
+  "description": "Manage domains from Claude Code — check availability, register, configure DNS, and more via the dn CLI",
+  "version": "1.0.0",
+  "author": {
+    "name": "Automattic"
+  }
+}
