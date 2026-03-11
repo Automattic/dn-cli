@@ -9,13 +9,13 @@ Manage domains from your terminal. `dn` works in two modes: directly through the
 Since this package is not yet on Packagist, first add the repository to your global Composer configuration:
 
 ```bash
-composer global config repositories.dn-cli vcs https://github.com/p3ob7o/dn-cli
+composer global config repositories.dn-cli vcs https://github.com/Automattic/dn-cli
 ```
 
 Then install:
 
 ```bash
-composer global require p3ob7o/dn-cli
+composer global require automattic/dn-cli
 ```
 
 Make sure `~/.composer/vendor/bin` (or `~/.config/composer/vendor/bin`) is in your `PATH`:
@@ -27,7 +27,7 @@ export PATH="$HOME/.composer/vendor/bin:$PATH"
 ### From source
 
 ```bash
-git clone https://github.com/p3ob7o/dn-cli.git
+git clone https://github.com/Automattic/dn-cli.git
 cd dn-cli
 composer install
 ```
@@ -74,6 +74,9 @@ export DN_OAUTH_TOKEN="your-oauth-token"
 
 # Override mode regardless of config file
 export DN_MODE="user"  # or "partner"
+
+# Auto-checkout preference (user mode)
+export DN_AUTO_CHECKOUT="both"  # "credits", "card", or "both"
 ```
 
 ### Config file
@@ -91,7 +94,8 @@ Stored at `~/.config/dn/config.json` with `0600` permissions:
 ```json
 {
     "mode": "user",
-    "oauth_token": "your-oauth-token"
+    "oauth_token": "your-oauth-token",
+    "auto_checkout": "both"
 }
 ```
 
@@ -157,6 +161,26 @@ dn register newdomain.com
 # With a specific site
 dn register newdomain.com --site=mysite.wordpress.com
 ```
+
+#### Auto-checkout (user mode)
+
+Complete purchases from the terminal without opening a browser. Requires a saved payment method or account credits, and contact information on file from a previous purchase.
+
+```bash
+# Auto-checkout: try credits first, then stored card
+dn register newdomain.com --auto-checkout
+
+# Use account credits only
+dn register newdomain.com --auto-pay-credits
+
+# Use a stored payment method only
+dn register newdomain.com --auto-pay-card
+
+# Skip confirmation prompt (for scripts)
+dn register newdomain.com --auto-checkout --yes
+```
+
+Set a persistent preference during `dn configure` or with the `DN_AUTO_CHECKOUT` environment variable (`credits`, `card`, or `both`).
 
 ### Cart and checkout (user mode)
 
