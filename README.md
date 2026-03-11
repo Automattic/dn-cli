@@ -6,14 +6,6 @@ Manage domains from your terminal. `dn` works in two modes: directly through the
 
 ### Composer (global)
 
-Since this package is not yet on Packagist, first add the repository to your global Composer configuration:
-
-```bash
-composer global config repositories.dn-cli vcs https://github.com/Automattic/dn-cli
-```
-
-Then install:
-
 ```bash
 composer global require automattic/dn-cli
 ```
