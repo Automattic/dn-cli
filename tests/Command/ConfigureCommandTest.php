@@ -181,7 +181,7 @@ class ConfigureCommandTest extends TestCase
         $app->add($command);
         $tester = new CommandTester($app->find('configure'));
 
-        $tester->setInputs(['user']);
+        $tester->setInputs(['user', 'N']); // mode choice, auto-checkout preference
         $tester->execute([]);
 
         // Splash screen should be shown since no --mode and no --stdin
@@ -192,6 +192,9 @@ class ConfigureCommandTest extends TestCase
         $this->assertStringContainsString('dn cart', $output);
         $this->assertStringContainsString('dn checkout', $output);
         $this->assertStringContainsString('wordpress.com/domains/manage', $output);
+
+        // Auto-checkout preference prompt
+        $this->assertStringContainsString('Auto-Checkout Preference', $output);
     }
 
     public function test_does_not_require_prior_config(): void

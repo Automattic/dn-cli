@@ -9,6 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\StreamableInputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class ConfigureCommand extends BaseCommand
@@ -78,10 +79,11 @@ class ConfigureCommand extends BaseCommand
     private function askMode(SymfonyStyle $io): string
     {
         $modes = ['U' => 'user', 'P' => 'partner'];
-        $key = $io->choice(
+        $key = $this->caseInsensitiveChoice(
+            $io,
             'Select mode (type <fg=yellow>U</> or <fg=yellow>P</>, or use arrow keys)',
             $modes,
-            'user'
+            'U'
         );
 
         return $modes[$key] ?? $key;
@@ -208,23 +210,41 @@ class ConfigureCommand extends BaseCommand
         $io->writeln('  When registering domains, auto-checkout can complete the');
         $io->writeln('  purchase from the terminal without opening a browser.');
         $io->writeln('');
+        $io->writeln('  <fg=yellow>[N]</> None — always open checkout in browser');
+        $io->writeln('  <fg=yellow>[C]</> Credits — auto-checkout when credits cover the full amount');
+        $io->writeln('  <fg=yellow>[S]</> Stored card — auto-checkout using a saved payment method');
+        $io->writeln('  <fg=yellow>[B]</> Both — try credits first, then stored card');
+        $io->writeln('');
 
         $options = [
-            'N' => 'None — always open checkout in browser',
-            'C' => 'Credits — auto-checkout when credits cover the full amount',
-            'S' => 'Stored card — auto-checkout using a saved payment method',
-            'B' => 'Both — try credits first, then stored card',
+            'N' => 'none',
+            'C' => 'credits',
+            'S' => 'stored card',
+            'B' => 'both',
         ];
 
-        $key = $io->choice('Auto-checkout preference', $options, 'N');
+        $key = $this->caseInsensitiveChoice($io, 'Auto-checkout preference', $options, 'N');
         $selected = $options[$key] ?? $key;
 
-        return match (true) {
-            str_starts_with($selected, 'Credits') => 'credits',
-            str_starts_with($selected, 'Stored') => 'card',
-            str_starts_with($selected, 'Both') => 'both',
+        return match ($selected) {
+            'credits' => 'credits',
+            'stored card' => 'card',
+            'both' => 'both',
             default => null,
         };
+    }
+
+    private function caseInsensitiveChoice(SymfonyStyle $io, string $question, array $choices, string $default): string
+    {
+        $choiceQuestion = new ChoiceQuestion($question, $choices, $default);
+        $choiceQuestion->setNormalizer(function (?string $value) {
+            if ($value !== null && strlen($value) === 1) {
+                return strtoupper($value);
+            }
+            return $value;
+        });
+
+        return $io->askQuestion($choiceQuestion);
     }
 
     /**
