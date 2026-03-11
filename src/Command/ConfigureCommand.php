@@ -210,21 +210,26 @@ class ConfigureCommand extends BaseCommand
         $io->writeln('  When registering domains, auto-checkout can complete the');
         $io->writeln('  purchase from the terminal without opening a browser.');
         $io->writeln('');
+        $io->writeln('  <fg=yellow>[N]</> None — always open checkout in browser');
+        $io->writeln('  <fg=yellow>[C]</> Credits — auto-checkout when credits cover the full amount');
+        $io->writeln('  <fg=yellow>[S]</> Stored card — auto-checkout using a saved payment method');
+        $io->writeln('  <fg=yellow>[B]</> Both — try credits first, then stored card');
+        $io->writeln('');
 
         $options = [
-            'N' => 'None — always open checkout in browser',
-            'C' => 'Credits — auto-checkout when credits cover the full amount',
-            'S' => 'Stored card — auto-checkout using a saved payment method',
-            'B' => 'Both — try credits first, then stored card',
+            'N' => 'none',
+            'C' => 'credits',
+            'S' => 'stored card',
+            'B' => 'both',
         ];
 
         $key = $this->caseInsensitiveChoice($io, 'Auto-checkout preference', $options, 'N');
         $selected = $options[$key] ?? $key;
 
-        return match (true) {
-            str_starts_with($selected, 'Credits') => 'credits',
-            str_starts_with($selected, 'Stored') => 'card',
-            str_starts_with($selected, 'Both') => 'both',
+        return match ($selected) {
+            'credits' => 'credits',
+            'stored card' => 'card',
+            'both' => 'both',
             default => null,
         };
     }
