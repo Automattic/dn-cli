@@ -9,3 +9,4 @@ composer.lock
 *.swo
 *~
 PRD.md
+.claude/settings.local.json
