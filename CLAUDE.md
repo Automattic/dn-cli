@@ -32,6 +32,14 @@ src/
   Service/
     CheckoutService.php        # WPCOM payment methods, domain contacts, transaction submission
   Util/Browser.php             # Cross-platform browser-open helper
+skills/
+  setup/SKILL.md             # Plugin setup: checks dn CLI is installed and configured
+  dn-check/SKILL.md          # Claude Code skills for each command (18 total)
+  dn-register/SKILL.md
+  ...
+.claude-plugin/
+  plugin.json                # Plugin manifest (name: domain-names)
+  marketplace.json           # Marketplace config for /plugin install
 tests/
   Api/WPcomClientTest.php
   Command/CommandTestCase.php  # Shared test base: mock API + WPcomClient, env var management

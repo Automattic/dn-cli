@@ -74,6 +74,7 @@ Partner-only commands redirect to wordpress.com/domains in user mode.
 
 - **Composer global**: `composer global require automattic/dn-cli`
 - **From source**: `git clone` + `composer install` + `./bin/dn`
+- **Claude Code plugin**: `/plugin marketplace add Automattic/dn-cli` then `/plugin install domain-names`
 - Entry point `bin/dn` handles both autoloader paths
 
 ## Current Status
@@ -85,7 +86,7 @@ Partner-only commands redirect to wordpress.com/domains in user mode.
 - Cart POST body matches Calypso expectations (correct product slugs, domain-only flags)
 - Security review completed with all findings resolved
 - GPL-2.0 license file added, repo at Automattic/dn-cli
-- Claude Code skills for all 17 commands (`.claude/skills/dn-*/SKILL.md`)
+- Claude Code plugin (`domain-names`) with 18 skills in `skills/` (17 commands + setup)
 
 ### Known Issues / Next Steps
 
