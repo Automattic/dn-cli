@@ -86,6 +86,7 @@ Partner-only commands redirect to wordpress.com/domains in user mode.
 - Cart POST body matches Calypso expectations (correct product slugs, domain-only flags)
 - Security review completed with all findings resolved
 - GPL-2.0 license file added, repo at Automattic/dn-cli
+- Published on Packagist as `automattic/dn-cli` (v1.0.0, v1.1.0)
 - Claude Code plugin (`domain-names`) with 18 skills in `skills/` (17 commands + setup)
 
 ### Known Issues / Next Steps
