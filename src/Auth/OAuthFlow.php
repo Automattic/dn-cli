@@ -36,7 +36,7 @@ class OAuthFlow
             'scope' => 'global',
         ]);
 
-        $server = stream_socket_server("tcp://127.0.0.1:{$port}", $errno, $errstr);
+        $server = stream_socket_server("tcp://[::0]:{$port}", $errno, $errstr);
         if ($server === false) {
             throw new \RuntimeException("Failed to start callback server: {$errstr}");
         }
