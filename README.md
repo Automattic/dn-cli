@@ -37,7 +37,7 @@ Run `dn configure` to pick a mode and authenticate:
 - **User mode** — WordPress.com OAuth. Requires a WordPress.com account.
 - **Partner mode** — Automattic Domain Services API. Requires an API key and API user.
 
-Your mode determines which commands are available. User mode covers domain search and purchase through WordPress.com checkout. Partner mode gives you the full set: registration, DNS, contacts, privacy, transfers.
+Your mode determines which commands are available. User mode covers domain search, purchase, and transfer through WordPress.com checkout. Partner mode gives you the full set: registration, DNS, contacts, privacy, transfers.
 
 ### Non-interactive setup
 
@@ -192,6 +192,32 @@ Partner mode. In user mode, points you to WordPress.com.
 dn info example.com
 ```
 
+### Transfer a domain
+
+Both modes. Transfers a domain from another registrar. The domain must be unlocked and you need the EPP authorization code.
+
+In **partner mode**, submits the transfer directly:
+
+```bash
+dn transfer example.com --auth-code=ABC123XYZ
+```
+
+In **user mode**, validates the auth code, adds the transfer to your WordPress.com cart, and prints a checkout link:
+
+```bash
+dn transfer example.com
+
+# With a specific site
+dn transfer example.com --site=mysite.wordpress.com
+```
+
+Auto-checkout works the same as with `dn register`:
+
+```bash
+dn transfer example.com --auto-checkout
+dn transfer example.com --auto-pay-credits --yes
+```
+
 ### Partner mode commands
 
 The remaining commands are partner mode only. In user mode, they'll point you to WordPress.com where you can manage these settings.
@@ -200,7 +226,6 @@ The remaining commands are partner mode only. In user mode, they'll point you to
 dn renew example.com --expiration-year=2026 --period=1
 dn delete example.com
 dn restore example.com
-dn transfer example.com --auth-code=ABC123XYZ
 ```
 
 #### DNS
@@ -242,7 +267,7 @@ dn transferlock example.com off
 | `dn renew <domain>` | partner | Renew registration |
 | `dn delete <domain>` | partner | Delete a domain |
 | `dn restore <domain>` | partner | Restore a deleted domain |
-| `dn transfer <domain>` | partner | Transfer a domain in |
+| `dn transfer <domain>` | both | Transfer a domain in (partner: direct, user: add to cart) |
 | `dn dns:get <domain>` | partner | View DNS records |
 | `dn dns:set <domain>` | partner | Set DNS records |
 | `dn contacts:set <domain>` | partner | Update contact information |

@@ -28,7 +28,8 @@ bin/dn  →  Application  →  Command  →  ApiClientFactory  →  Api  →  DS
 - **WPcomClientFactory**: Static factory for `WPcomClient` from OAuth token.
 - **WPcomClient**: Thin Guzzle wrapper for WordPress.com REST API with Bearer token auth.
 - **OAuthFlow**: Browser-based OAuth implicit grant flow with localhost callback server (port 19851, client ID 134319).
-- **CheckoutService**: Wraps WPCOM payment and transaction APIs (`/me/payment-methods`, `/me/domain-contact-information`, `/me/transactions`). Used by RegisterCommand for auto-checkout.
+- **CheckoutService**: Wraps WPCOM payment and transaction APIs (`/me/payment-methods`, `/me/domain-contact-information`, `/me/transactions`). Used by RegisterCommand and TransferCommand for auto-checkout.
+- **UserModeCheckoutTrait**: Shared auto-checkout logic (credits, stored card, confirmation prompts) used by RegisterCommand and TransferCommand.
 
 ## Commands (17)
 
@@ -45,18 +46,18 @@ bin/dn  →  Application  →  Command  →  ApiClientFactory  →  Api  →  DS
 | `renew` | RenewCommand | partner | Renew a domain registration |
 | `delete` | DeleteCommand | partner | Delete a domain (with confirmation) |
 | `restore` | RestoreCommand | partner | Restore a deleted domain |
-| `transfer` | TransferCommand | partner | Transfer a domain in (hidden auth code input) |
+| `transfer` | TransferCommand | both | Transfer a domain in (partner: direct via API, user: validate auth code + add to cart or auto-checkout). `--auth-code`, `--site`, `--auto-checkout`, `--auto-pay-credits`, `--auto-pay-card`, `--yes` |
 | `dns:get` | DnsGetCommand | partner | View DNS records |
 | `dns:set` | DnsSetCommand | partner | Set DNS records (supports multiple values) |
 | `contacts:set` | ContactsSetCommand | partner | Update contact information |
 | `privacy` | PrivacySetCommand | partner | Set WHOIS privacy (on/off/redact) |
 | `transferlock` | TransferlockCommand | partner | Set transfer lock (on/off) |
 
-Partner-only commands redirect to wordpress.com/domains in user mode.
+Partner-only commands redirect to wordpress.com/domains in user mode. `transfer` is the only command besides `register` that supports both modes with auto-checkout.
 
 ## Test Suite
 
-- **214 tests, 458 assertions** — all passing, zero deprecations
+- **222 tests, 488 assertions** — all passing, zero deprecations
 - **Fully mocked** — no API credentials needed to run tests
 - **Coverage**: every command (success, API error, exception, unconfigured state, user-mode paths), ConfigManager (env vars, file I/O, permissions, caching, mode + OAuth, auto-checkout), ApiClientFactory, WPcomClientFactory, CheckoutService, Application (command registration)
 - **Security tests**: credential redaction (API key, user, OAuth token), TOCTOU permission fix, HTTP URL rejection, config path non-disclosure, stored_details_id never in output
@@ -79,14 +80,15 @@ Partner-only commands redirect to wordpress.com/domains in user mode.
 
 ## Current Status
 
-- All 17 commands implemented and tested (214 tests, 458 assertions)
+- All 17 commands implemented and tested (222 tests, 488 assertions)
 - Dual-mode architecture: partner mode (Domain Services API) and user mode (WordPress.com OAuth)
 - Auto-checkout: opt-in headless domain purchase via credits or stored payment methods
 - OAuth flow working with client ID 134319, fixed port 19851
 - Cart POST body matches Calypso expectations (correct product slugs, domain-only flags)
 - Security review completed with all findings resolved
 - GPL-2.0 license file added, repo at Automattic/dn-cli
-- Published on Packagist as `automattic/dn-cli` (v1.0.0, v1.1.0)
+- Published on Packagist as `automattic/dn-cli` (v1.0.0, v1.1.0, v1.2.0)
+- User-mode domain transfer: auth code validation, WPCOM cart integration, auto-checkout
 - Claude Code plugin (`domain-names`) with 18 skills in `skills/` (17 commands + setup)
 
 ### Known Issues / Next Steps
