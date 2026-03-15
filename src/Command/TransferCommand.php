@@ -134,7 +134,7 @@ class TransferCommand extends BaseCommand
 
             // Validate auth code
             $authCheck = $client->get(
-                "domains/{$domainName}/inbound-transfer-check-auth-code",
+                "rest/v1.1/domains/{$domainName}/inbound-transfer-check-auth-code",
                 ['auth_code' => $authCode]
             );
 
