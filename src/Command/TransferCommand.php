@@ -146,7 +146,8 @@ class TransferCommand extends BaseCommand
             // Check transferability
             $check = $client->get("rest/v1.3/domains/{$domainName}/is-available");
 
-            if (($check['status'] ?? '') !== 'transferrable') {
+            $transferrability = $check['transferrability'] ?? $check['status'] ?? '';
+            if ($transferrability !== 'transferrable') {
                 $io->error("{$domainName} is not available for transfer.");
                 return self::FAILURE;
             }

@@ -198,7 +198,7 @@ class TransferCommandTest extends CommandTestCase
                     return ['success' => true];
                 }
                 if (str_contains($url, 'is-available')) {
-                    return ['status' => 'transferrable', 'supports_privacy' => true];
+                    return ['status' => 'mapped_domain', 'transferrability' => 'transferrable', 'supports_privacy' => true];
                 }
                 throw new \RuntimeException("Unexpected GET: {$url}");
             });
@@ -272,7 +272,7 @@ class TransferCommandTest extends CommandTestCase
                     return ['success' => true];
                 }
                 if (str_contains($url, 'is-available')) {
-                    return ['status' => 'transferrable', 'supports_privacy' => true];
+                    return ['status' => 'mapped_domain', 'transferrability' => 'transferrable', 'supports_privacy' => true];
                 }
                 throw new \RuntimeException("Unexpected GET: {$url}");
             });
@@ -314,7 +314,7 @@ class TransferCommandTest extends CommandTestCase
         $this->mockWpcomCalls(
             [
                 'inbound-transfer-check-auth-code' => ['success' => true],
-                'is-available' => ['status' => 'transferrable', 'supports_privacy' => true],
+                'is-available' => ['status' => 'mapped_domain', 'transferrability' => 'transferrable', 'supports_privacy' => true],
                 'domain-contact-information' => $this->domainContactFixture(),
             ],
             [
@@ -338,7 +338,7 @@ class TransferCommandTest extends CommandTestCase
         $this->mockWpcomCalls(
             [
                 'inbound-transfer-check-auth-code' => ['success' => true],
-                'is-available' => ['status' => 'transferrable', 'supports_privacy' => true],
+                'is-available' => ['status' => 'mapped_domain', 'transferrability' => 'transferrable', 'supports_privacy' => true],
                 'rest/v1.1/me/payment' => [$this->paymentMethodFixture()],
                 'domain-contact-information' => $this->domainContactFixture(),
             ],
@@ -366,7 +366,7 @@ class TransferCommandTest extends CommandTestCase
         $this->mockWpcomCalls(
             [
                 'inbound-transfer-check-auth-code' => ['success' => true],
-                'is-available' => ['status' => 'transferrable', 'supports_privacy' => true],
+                'is-available' => ['status' => 'mapped_domain', 'transferrability' => 'transferrable', 'supports_privacy' => true],
                 'domain-contact-information' => $this->domainContactFixture(),
             ],
             [
@@ -391,7 +391,7 @@ class TransferCommandTest extends CommandTestCase
         $this->mockWpcomCalls(
             [
                 'inbound-transfer-check-auth-code' => ['success' => true],
-                'is-available' => ['status' => 'transferrable', 'supports_privacy' => true],
+                'is-available' => ['status' => 'mapped_domain', 'transferrability' => 'transferrable', 'supports_privacy' => true],
                 'domain-contact-information' => $this->domainContactFixture(),
             ],
             [
