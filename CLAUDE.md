@@ -18,10 +18,12 @@ src/
   Auth/OAuthFlow.php           # Browser OAuth flow with localhost callback
   Command/
     BaseCommand.php            # Abstract base: auth guard, API creation, mode dispatch, error sanitization
+    UserModeCheckoutTrait.php  # Shared auto-checkout logic (credits, card, confirmation) for user-mode commands
     ConfigureCommand.php       # dn configure (--mode, --stdin, OAuth flow)
     CheckCommand.php           # dn check <domain>... (dual-mode: partner API or WPCOM API)
     SuggestCommand.php         # dn suggest <query> (dual-mode)
     RegisterCommand.php        # dn register <domain> (dual-mode: direct register or add to cart)
+    TransferCommand.php        # dn transfer <domain> (dual-mode: direct transfer or validate + add to cart)
     CartCommand.php            # dn cart (user mode only — view shopping cart)
     CheckoutCommand.php        # dn checkout (user mode only — open browser checkout)
     ... (17 commands total)
@@ -86,13 +88,21 @@ Every command extends `BaseCommand` and implements `handle()`. The base class:
 - No CLI flags for credentials (prevents `ps aux` / shell history exposure)
 
 ### Auto-Checkout (User Mode)
-`RegisterCommand` supports opt-in headless checkout via `CheckoutService`:
+`RegisterCommand` and `TransferCommand` support opt-in headless checkout via `UserModeCheckoutTrait` + `CheckoutService`:
 - Flags: `--auto-checkout` (both), `--auto-pay-credits`, `--auto-pay-card`, `--yes` (skip confirm)
 - Config: `auto_checkout` in config.json, `DN_AUTO_CHECKOUT` env var (values: `credits`, `card`, `both`)
 - Flow: add to cart → fetch `/me/domain-contact-information` → validate required fields → submit `POST /me/transactions`
 - Always falls back to checkout URL on any failure (missing contacts, no payment methods, transaction error)
 - `stored_details_id` must never appear in output — only card type and last 4 digits shown
 - `ConfigureCommand` prompts for auto-checkout preference after OAuth (interactive mode only)
+- `UserModeCheckoutTrait` accepts a `$successLabel` parameter for command-specific success messages ("registered" vs "transfer submitted")
+
+### User-Mode Transfer (WPCOM API)
+`TransferCommand` user-mode flow:
+1. Validate auth code: `GET rest/v1.1/domains/{domain}/inbound-transfer-check-auth-code` (requires `rest/v1.1/` prefix)
+2. Check transferability: `GET rest/v1.3/domains/{domain}/is-available` — use `transferrability` field (not `status`)
+3. Add to cart: `POST rest/v1.1/me/shopping-cart/{site}` with `product_slug: 'domain_transfer'`, `extra.auth_code`
+4. Auto-checkout or browser fallback
 
 ### Security Patterns
 - All catch blocks use `sanitizeErrorMessage()` to redact credentials (API key, user, OAuth token)
