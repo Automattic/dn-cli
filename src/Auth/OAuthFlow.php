@@ -24,7 +24,10 @@ class OAuthFlow
         $this->browserOpener = $browserOpener ?? [Browser::class, 'open'];
     }
 
-    public function authenticate(): string
+    /**
+     * @param callable(string): void|null $onReady Called with the authorization URL before the browser opens
+     */
+    public function authenticate(?callable $onReady = null): string
     {
         $port = self::REDIRECT_PORT;
         $redirectUri = "http://localhost:{$port}/callback";
@@ -39,6 +42,10 @@ class OAuthFlow
         $server = stream_socket_server("tcp://[::0]:{$port}", $errno, $errstr);
         if ($server === false) {
             throw new \RuntimeException("Failed to start callback server: {$errstr}");
+        }
+
+        if ($onReady !== null) {
+            ($onReady)($authorizeUrl);
         }
 
         ($this->browserOpener)($authorizeUrl);

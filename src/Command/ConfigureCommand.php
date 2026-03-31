@@ -179,10 +179,16 @@ class ConfigureCommand extends BaseCommand
             $stream = $this->getInputStream($input);
             $token = trim((string) fgets($stream));
         } else {
-            $io->text('Authenticating with WordPress.com...');
-
             $flow = $this->oauthFlow ?? new OAuthFlow();
-            $token = $flow->authenticate();
+            $token = $flow->authenticate(function (string $url) use ($io): void {
+                $io->writeln('');
+                $io->writeln('  Next: authenticate with your WordPress.com account.');
+                $io->writeln('');
+                $io->writeln("  If the browser doesn't open automatically, visit:");
+                $io->writeln("  <fg=cyan>{$url}</>");
+                $io->writeln('');
+                $io->ask('Press Enter to open a browser window');
+            });
         }
 
         if ($token === '') {

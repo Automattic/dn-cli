@@ -184,6 +184,7 @@ class ConfigureCommandTest extends TestCase
         $tester->setInputs(['user', 'N']); // mode choice, auto-checkout preference
         $tester->execute([]);
 
+
         // Splash screen should be shown since no --mode and no --stdin
         $output = $tester->getDisplay();
         $this->assertStringContainsString('Domain Name CLI', $output);
@@ -195,6 +196,34 @@ class ConfigureCommandTest extends TestCase
 
         // Auto-checkout preference prompt
         $this->assertStringContainsString('Auto-Checkout Preference', $output);
+    }
+
+    public function test_user_mode_interactive_shows_press_enter_prompt_and_fallback_url(): void
+    {
+        $oauthFlow = $this->getMockBuilder(\DnCli\Auth\OAuthFlow::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $oauthFlow->method('authenticate')
+            ->willReturnCallback(function (?callable $onReady = null) {
+                if ($onReady !== null) {
+                    ($onReady)('https://public-api.wordpress.com/oauth2/authorize?client_id=134319&test=1');
+                }
+                return 'mock-token';
+            });
+
+        $command = new ConfigureCommand($oauthFlow);
+        $app = new Application();
+        $app->add($command);
+        $tester = new CommandTester($app->find('configure'));
+
+        $tester->setInputs(['user', '', 'N']); // mode choice, Enter for browser prompt, auto-checkout
+        $tester->execute([]);
+
+        $output = $tester->getDisplay();
+        $this->assertStringContainsString('authenticate with your WordPress.com account', $output);
+        $this->assertStringContainsString("browser doesn't open automatically", $output);
+        $this->assertStringContainsString('public-api.wordpress.com/oauth2/authorize', $output);
+        $this->assertStringContainsString('Press Enter to open a browser window', $output);
     }
 
     public function test_does_not_require_prior_config(): void
