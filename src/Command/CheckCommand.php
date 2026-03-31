@@ -45,7 +45,7 @@ class CheckCommand extends BaseCommand
             $api = $this->createApi();
             $command = new Check($domainNames);
             /** @var CheckResponse $response */
-            $response = $api->post($command);
+            $response = $this->withSpinner('Checking domain availability...', fn() => $api->post($command));
 
             if (!$response->is_success()) {
                 $io->error('API error: ' . $response->get_status_description());
@@ -87,7 +87,7 @@ class CheckCommand extends BaseCommand
             $rows = [];
 
             foreach ($domainArgs as $domain) {
-                $result = $client->get("rest/v1.3/domains/{$domain}/is-available");
+                $result = $this->withSpinner("Checking {$domain}...", fn() => $client->get("rest/v1.3/domains/{$domain}/is-available"));
 
                 $available = ($result['status'] ?? '') === 'available';
 

@@ -9,6 +9,7 @@ use DnCli\Api\WPcomClient;
 use DnCli\Config\ConfigManager;
 use DnCli\Factory\ApiClientFactory;
 use DnCli\Factory\WPcomClientFactory;
+use DnCli\Service\Spinner;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -76,6 +77,16 @@ abstract class BaseCommand extends Command
         $io->text('Visit: https://wordpress.com/domains/manage');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @template T
+     * @param callable(): T $task
+     * @return T
+     */
+    protected function withSpinner(string $message, callable $task): mixed
+    {
+        return (new Spinner())->spin($message, $task);
     }
 
     /**

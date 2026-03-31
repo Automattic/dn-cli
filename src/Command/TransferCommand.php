@@ -92,8 +92,6 @@ class TransferCommand extends BaseCommand
         $contact = new Domain_Contact($contactInfo);
         $contacts = new Domain_Contacts($contact);
 
-        $io->text("Transferring <info>{$domainName}</info>...");
-
         try {
             $api = $this->createApi();
             $command = new Transfer(
@@ -101,7 +99,7 @@ class TransferCommand extends BaseCommand
                 $authCode,
                 $contacts
             );
-            $response = $api->post($command);
+            $response = $this->withSpinner("Submitting transfer for {$domainName}...", fn() => $api->post($command));
 
             if ($response->is_success()) {
                 $io->success("Transfer request for {$domainName} has been submitted. Check events for completion status.");
@@ -133,10 +131,10 @@ class TransferCommand extends BaseCommand
             $client = $this->createWPcomClient();
 
             // Validate auth code
-            $authCheck = $client->get(
+            $authCheck = $this->withSpinner('Validating auth code...', fn() => $client->get(
                 "rest/v1.1/domains/{$domainName}/inbound-transfer-check-auth-code",
                 ['auth_code' => $authCode]
-            );
+            ));
 
             if (!($authCheck['success'] ?? false)) {
                 $io->error('Invalid authorization code for ' . $domainName);
@@ -144,7 +142,7 @@ class TransferCommand extends BaseCommand
             }
 
             // Check transferability
-            $check = $client->get("rest/v1.3/domains/{$domainName}/is-available");
+            $check = $this->withSpinner("Checking {$domainName}...", fn() => $client->get("rest/v1.3/domains/{$domainName}/is-available"));
 
             $transferrability = $check['transferrability'] ?? $check['status'] ?? '';
             if ($transferrability !== 'transferrable') {
@@ -182,7 +180,7 @@ class TransferCommand extends BaseCommand
                 $cartBody['cart_key'] = 'no-site';
             }
 
-            $cartResponse = $client->post("rest/v1.1/me/shopping-cart/{$site}", $cartBody);
+            $cartResponse = $this->withSpinner("Adding {$domainName} to transfer cart...", fn() => $client->post("rest/v1.1/me/shopping-cart/{$site}", $cartBody));
 
             // Attempt auto-checkout if enabled
             $autoMode = $this->resolveAutoCheckoutMode($input);

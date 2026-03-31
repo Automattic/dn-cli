@@ -100,9 +100,7 @@ class RegisterCommand extends BaseCommand
         // Price for premium domains
         $price = $input->getOption('price') !== null ? (int) $input->getOption('price') : null;
 
-        $io->text("Registering <info>{$domainName}</info> for {$period} year(s)...");
-
-        if (!$io->confirm('Proceed with registration?', true)) {
+        if (!$io->confirm("Proceed with registering {$domainName}?", true)) {
             $io->text('Cancelled.');
             return self::SUCCESS;
         }
@@ -118,7 +116,7 @@ class RegisterCommand extends BaseCommand
                 $privacySetting,
                 $price
             );
-            $response = $api->post($command);
+            $response = $this->withSpinner("Registering {$domainName}...", fn() => $api->post($command));
 
             if ($response->is_success()) {
                 $io->success("Registration request for {$domainName} has been submitted. Check events for completion status.");
@@ -144,7 +142,7 @@ class RegisterCommand extends BaseCommand
             $client = $this->createWPcomClient();
 
             // Check availability
-            $check = $client->get("rest/v1.3/domains/{$domainName}/is-available");
+            $check = $this->withSpinner("Checking {$domainName}...", fn() => $client->get("rest/v1.3/domains/{$domainName}/is-available"));
 
             if (($check['status'] ?? '') !== 'available') {
                 $io->error("{$domainName} is not available for registration.");
@@ -177,7 +175,7 @@ class RegisterCommand extends BaseCommand
                 $cartBody['cart_key'] = 'no-site';
             }
 
-            $cartResponse = $client->post("rest/v1.1/me/shopping-cart/{$site}", $cartBody);
+            $cartResponse = $this->withSpinner("Adding {$domainName} to cart...", fn() => $client->post("rest/v1.1/me/shopping-cart/{$site}", $cartBody));
 
             // Attempt auto-checkout if enabled
             $autoMode = $this->resolveAutoCheckoutMode($input);

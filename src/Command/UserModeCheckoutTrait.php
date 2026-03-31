@@ -49,7 +49,7 @@ trait UserModeCheckoutTrait
 
         // Fetch domain contact info (required for all auto-checkout paths)
         try {
-            $contactInfo = $checkout->getDomainContactInfo();
+            $contactInfo = $this->withSpinner('Fetching contact information...', fn() => $checkout->getDomainContactInfo());
         } catch (\Exception $e) {
             $io->warning('Could not fetch contact information: ' . $this->sanitizeErrorMessage($e->getMessage()));
             return null;
@@ -98,7 +98,7 @@ trait UserModeCheckoutTrait
             }
 
             $payment = $checkout->buildCreditsPayment($contactInfo);
-            $checkout->submitTransaction($cartResponse, $payment, $contactInfo);
+            $this->withSpinner('Processing payment...', fn() => $checkout->submitTransaction($cartResponse, $payment, $contactInfo));
 
             $io->success("Domain {$domainName} {$successLabel} successfully!");
             return self::SUCCESS;
@@ -120,7 +120,7 @@ trait UserModeCheckoutTrait
         string $successLabel = 'registered',
     ): ?int {
         try {
-            $methods = $checkout->getPaymentMethods();
+            $methods = $this->withSpinner('Fetching payment methods...', fn() => $checkout->getPaymentMethods());
             $methods = array_filter($methods, fn(array $m) => !($m['is_expired'] ?? false));
 
             if (empty($methods)) {
@@ -150,7 +150,7 @@ trait UserModeCheckoutTrait
             }
 
             $payment = $checkout->buildStoredCardPayment($selectedMethod);
-            $checkout->submitTransaction($cartResponse, $payment, $contactInfo);
+            $this->withSpinner('Processing payment...', fn() => $checkout->submitTransaction($cartResponse, $payment, $contactInfo));
 
             $io->success("Domain {$domainName} {$successLabel} successfully!");
             return self::SUCCESS;

@@ -50,7 +50,7 @@ class SuggestCommand extends BaseCommand
             $api = $this->createApi();
             $command = new Suggestions($query, $count, $tlds, $exact);
             /** @var SuggestionsResponse $response */
-            $response = $api->post($command);
+            $response = $this->withSpinner('Fetching suggestions...', fn() => $api->post($command));
 
             if (!$response->is_success()) {
                 $io->error('API error: ' . $response->get_status_description());
@@ -89,10 +89,10 @@ class SuggestCommand extends BaseCommand
 
         try {
             $client = $this->createWPcomClient();
-            $result = $client->get('rest/v1.1/domains/suggestions', [
+            $result = $this->withSpinner('Fetching suggestions...', fn() => $client->get('rest/v1.1/domains/suggestions', [
                 'query' => $query,
                 'quantity' => $count,
-            ]);
+            ]));
 
             $rows = [];
             foreach ($result as $suggestion) {
