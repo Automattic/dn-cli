@@ -201,9 +201,9 @@ h1{
     </svg>
   </div>
   <h1>Authenticated</h1>
-  <p class="sub">Your WordPress.com account is now connected.</p>
+  <p class="sub">Your WordPress.com account<br>is now connected.</p>
   <div class="rule"></div>
-  <p class="hint">You can close this window and return to the terminal.</p>
+  <p class="hint">You can close this window<br>and return to the terminal.</p>
 </div>
 </body>
 </html>

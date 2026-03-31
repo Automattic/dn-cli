@@ -10,3 +10,4 @@ composer.lock
 *~
 PRD.md
 .claude/settings.local.json
+.gstack/
