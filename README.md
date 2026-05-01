@@ -1,6 +1,6 @@
 # dn — Domain Name CLI
 
-Manage domains from your terminal. Two modes: Automattic Domain Services API (partner) or WordPress.com (user).
+Manage domains from your terminal. `dn` works in two modes: directly through the Automattic Domain Services API (partner mode), or through WordPress.com (user mode).
 
 ## Installation
 
@@ -10,7 +10,7 @@ Manage domains from your terminal. Two modes: Automattic Domain Services API (pa
 composer global require automattic/dn-cli
 ```
 
-Add `~/.composer/vendor/bin` (or `~/.config/composer/vendor/bin`) to your `PATH`:
+Make sure `~/.composer/vendor/bin` (or `~/.config/composer/vendor/bin`) is in your `PATH`:
 
 ```bash
 export PATH="$HOME/.composer/vendor/bin:$PATH"
@@ -24,7 +24,7 @@ cd dn-cli
 composer install
 ```
 
-Run `./bin/dn` or symlink into PATH:
+Then run with `./bin/dn` or symlink it into your PATH:
 
 ```bash
 ln -s "$(pwd)/bin/dn" /usr/local/bin/dn
@@ -37,7 +37,7 @@ Run `dn configure` to pick a mode and authenticate:
 - **User mode** — WordPress.com OAuth. Requires a WordPress.com account.
 - **Partner mode** — Automattic Domain Services API. Requires an API key and API user.
 
-Mode determines available commands. User mode: search, purchase, transfer via WordPress.com checkout. Partner mode: full set — registration, DNS, contacts, privacy, transfers.
+Your mode determines which commands are available. User mode covers domain search, purchase, and transfer through WordPress.com checkout. Partner mode gives you the full set: registration, DNS, contacts, privacy, transfers.
 
 ### Non-interactive setup
 
@@ -91,7 +91,7 @@ Stored at `~/.config/dn/config.json` with `0600` permissions:
 }
 ```
 
-Remove stored credentials:
+To remove stored credentials:
 
 ```bash
 dn reset
@@ -124,7 +124,7 @@ dn suggest "mycoffee" --exact
 
 ### Register a domain
 
-**Partner mode** — registers directly:
+In **partner mode**, registers the domain directly:
 
 ```bash
 # Interactive — prompts for contact details
@@ -145,7 +145,7 @@ dn register newdomain.com \
   --privacy=on
 ```
 
-**User mode** — adds to your WordPress.com cart and prints a checkout link:
+In **user mode**, adds the domain to your WordPress.com cart and prints a checkout link:
 
 ```bash
 dn register newdomain.com
@@ -156,7 +156,7 @@ dn register newdomain.com --site=mysite.wordpress.com
 
 #### Auto-checkout (user mode)
 
-Complete purchases without opening a browser. Requires a saved payment method or credits, plus contact info on file from a previous purchase.
+Complete purchases from the terminal without opening a browser. Requires a saved payment method or account credits, and contact information on file from a previous purchase.
 
 ```bash
 # Auto-checkout: try credits first, then stored card
@@ -182,7 +182,7 @@ dn checkout
 dn checkout --site=mysite.wordpress.com
 ```
 
-`dn register` adds to cart, `dn cart` views it, `dn checkout` opens WordPress.com checkout in your browser.
+`dn register` adds to cart, `dn cart` shows what's in it, `dn checkout` opens WordPress.com checkout in your browser.
 
 ### Domain information
 
@@ -194,15 +194,15 @@ dn info example.com
 
 ### Transfer a domain
 
-Both modes. Transfers from another registrar. Domain must be unlocked; you need the EPP auth code.
+Both modes. Transfers a domain from another registrar. The domain must be unlocked and you need the EPP authorization code.
 
-**Partner mode** — submits directly:
+In **partner mode**, submits the transfer directly:
 
 ```bash
 dn transfer example.com --auth-code=ABC123XYZ
 ```
 
-**User mode** — validates the auth code, adds to your WordPress.com cart, prints a checkout link:
+In **user mode**, validates the auth code, adds the transfer to your WordPress.com cart, and prints a checkout link:
 
 ```bash
 dn transfer example.com
@@ -211,7 +211,7 @@ dn transfer example.com
 dn transfer example.com --site=mysite.wordpress.com
 ```
 
-Auto-checkout works like `dn register`:
+Auto-checkout works the same as with `dn register`:
 
 ```bash
 dn transfer example.com --auto-checkout
@@ -220,7 +220,7 @@ dn transfer example.com --auto-pay-credits --yes
 
 ### Partner mode commands
 
-Partner mode only. In user mode, these point to WordPress.com.
+The remaining commands are partner mode only. In user mode, they'll point you to WordPress.com where you can manage these settings.
 
 ```bash
 dn renew example.com --expiration-year=2026 --period=1
@@ -276,14 +276,14 @@ dn transferlock example.com off
 
 ## Claude Code plugin
 
-For [Claude Code](https://claude.com/claude-code) users, install the `domain-names` plugin for guided domain management skills:
+If you use [Claude Code](https://claude.com/claude-code), you can install the `domain-names` plugin for guided domain management skills:
 
 ```
 /plugin marketplace add Automattic/dn-cli
 /plugin install domain-names
 ```
 
-Run `/domain-names:setup` to verify install and config. Then use skills like `/domain-names:dn-check`, `/domain-names:dn-register`.
+Run `/domain-names:setup` to verify the CLI is installed and configured. Then use skills like `/domain-names:dn-check`, `/domain-names:dn-register`, etc.
 
 ## Shell completion
 
