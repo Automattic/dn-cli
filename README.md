@@ -2,7 +2,7 @@
 
 Manage domains from your terminal. `dn` works in two modes: directly through the Automattic Domain Services API (partner mode), or through WordPress.com (user mode).
 
-## Installation
+## Quick Installation
 
 ### Composer (global)
 
